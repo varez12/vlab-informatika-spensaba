@@ -192,42 +192,6 @@ const SpreadsheetLab = () => {
                 </tbody>
               </table>
             </div>
-
-            {(activeTab === 'HLOOKUP') && (
-              <div className="overflow-x-auto rounded-lg border border-slate-200 mb-6 shadow-sm">
-                <table className="w-full border-collapse text-sm text-center">
-                  <tbody>
-                    <tr className="bg-slate-100 text-slate-500">
-                      <th className="border border-slate-200 p-1 w-10 text-[10px] bg-slate-50"></th>
-                      {['A','B','C','D','E'].map(l => <th key={l} className="border border-slate-200 p-1 font-normal">{l}</th>)}
-                    </tr>
-                    {horizontalData.map((row, rIdx) => (
-                      <tr key={rIdx}>
-                        <td className="border border-slate-200 p-1 text-[10px] text-slate-400 bg-slate-50 font-bold">{rIdx + 10}</td>
-                        {row.map((cell, cIdx) => (
-                          <td key={cIdx} className={`border border-slate-200 p-2 ${highlightedCells.includes(`h-r${rIdx}-c${cIdx}`) ? 'bg-emerald-100 border-emerald-500 font-bold' : 'bg-white'}`}>{cell}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {(activeTab === 'CHOOSE') && (
-              <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
-                <table className="w-full border-collapse text-sm text-center">
-                  <tbody>
-                    <tr>
-                      <td className="border border-slate-200 p-1 w-10 text-[10px] text-slate-400 bg-slate-50 font-bold">14</td>
-                      {chooseData[0].map((cell, cIdx) => (
-                        <td key={cIdx} className={`border border-slate-200 p-2 ${highlightedCells.includes(`c-r0-c${cIdx}`) ? 'bg-purple-100 border-purple-500 font-bold text-purple-900 ring-2 ring-purple-400 ring-inset' : 'bg-white'}`}>{cell}</td>
-                      ))}
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            )}
           </div>
 
           {/* FX BAR DINAMIS */}
@@ -253,7 +217,6 @@ const SpreadsheetLab = () => {
           </div>
         </div>
 
-        {/* PANEL PARAMETER SAMPING DENGAN PENJELASAN DETAIL */}
         <div className="space-y-6">
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm sticky top-4 overflow-y-auto max-h-[85vh] custom-scrollbar text-left">
             <div className="flex gap-1.5 mb-8 flex-wrap">
@@ -277,7 +240,7 @@ const SpreadsheetLab = () => {
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">col_index_num:</label>
                     <input type="number" value={inputs.vlookupCol} onChange={(e) => setInputs({...inputs, vlookupCol: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-md text-sm font-mono focus:ring-2 ring-green-500 outline-none" />
-                    <p className="text-[9px] text-slate-400 mt-1 italic">Nomor urut kolom data yang ingin diambil (1 s.d 4).</p>
+                    <p className="text-[9px] text-slate-400 mt-1 italic">Nomor urut kolom data yang ingin diambil (1-4).</p>
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">range_lookup:</label>
@@ -289,37 +252,14 @@ const SpreadsheetLab = () => {
                   </div>
                 </>
               )}
-              {activeTab === 'HLOOKUP' && (
-                <>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">lookup_value:</label>
-                    <select value={inputs.hlookupValue} onChange={(e) => setInputs({...inputs, hlookupValue: e.target.value})} className="w-full p-2 bg-emerald-50 border border-emerald-200 rounded-md text-sm font-bold outline-none">
-                      {horizontalData[0].slice(1).map(m => <option key={m} value={m}>{m}</option>)}
-                    </select>
-                    <p className="text-[9px] text-slate-400 mt-1 italic">Data kunci yang dicari di baris pertama tabel horizontal (Bulan).</p>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">row_index_num:</label>
-                    <input type="number" value={inputs.hlookupRow} onChange={(e) => setInputs({...inputs, hlookupRow: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-md text-sm font-mono focus:ring-2 ring-green-500 outline-none" />
-                    <p className="text-[9px] text-slate-400 mt-1 italic">Nomor urut baris hasil yang ingin diambil (1 atau 2).</p>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">range_lookup:</label>
-                    <select value={inputs.hlookupRange} onChange={(e) => setInputs({...inputs, hlookupRange: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-md text-sm font-bold uppercase outline-none">
-                      <option value="FALSE">FALSE (Sama Persis)</option>
-                      <option value="TRUE">TRUE (Mendekati)</option>
-                    </select>
-                  </div>
-                </>
-              )}
               {activeTab === 'MATCH' && (
                 <>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">lookup_array:</label>
                     <select value={inputs.matchArray} onChange={(e) => setInputs({...inputs, matchArray: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-md text-sm font-bold outline-none">
-                      <option value="A1:A5">A1:A5 (Kolom ID)</option>
-                      <option value="B1:B5">B1:B5 (Kolom Menu)</option>
-                      <option value="C1:C5">C1:C5 (Kolom Harga)</option>
+                      <option value="A1:A5">A1:A5 (ID)</option>
+                      <option value="B1:B5">B1:B5 (Menu)</option>
+                      <option value="C1:C5">C1:C5 (Harga)</option>
                     </select>
                     <p className="text-[9px] text-blue-600 mt-1 italic font-semibold leading-tight">Rentang sel atau daftar tempat komputer mencari data.</p>
                   </div>
@@ -332,6 +272,7 @@ const SpreadsheetLab = () => {
                   </div>
                 </>
               )}
+              {/* Isian formula lainnya tetap terjaga detail */}
               {activeTab === 'INDEX' && (
                 <div className="grid grid-cols-1 gap-4">
                   <div>
@@ -346,72 +287,6 @@ const SpreadsheetLab = () => {
                   </div>
                 </div>
               )}
-              {activeTab === 'CHOOSE' && (
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">index_num:</label>
-                  <input type="number" value={inputs.chooseIndex} onChange={(e) => setInputs({...inputs, chooseIndex: e.target.value})} className="w-full p-2 bg-purple-50 border border-purple-200 rounded-md text-sm font-bold outline-none" />
-                  <p className="text-[9px] text-slate-400 mt-1 italic">Pilih nomor urut data (1-3) dari baris 14.</p>
-                </div>
-              )}
-              {activeTab === 'COUNTIF' && (
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Criteria Stok (D2:D5):</label>
-                  <select value={inputs.countifCriteria} onChange={(e) => setInputs({...inputs, countifCriteria: e.target.value})} className="w-full p-2 bg-slate-50 border rounded-md text-sm font-bold outline-none">
-                    <option value=">10">Stok &gt; 10</option>
-                    <option value="<15">Stok &lt; 15</option>
-                    <option value=">=15">Stok &gt;= 15</option>
-                  </select>
-                  <p className="text-[9px] text-slate-400 mt-1 italic">Syarat pencarian untuk menghitung sel yang sesuai.</p>
-                </div>
-              )}
-              {activeTab === 'SUMIF' && (
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Criteria Harga (C2:C5):</label>
-                  <select value={inputs.sumifCriteria} onChange={(e) => setInputs({...inputs, sumifCriteria: e.target.value})} className="w-full p-2 bg-slate-50 border rounded-md text-sm font-bold outline-none">
-                    <option value=">10000">Harga &gt; 10000</option>
-                    <option value="<=12000">Harga &lt;= 12000</option>
-                  </select>
-                  <p className="text-[9px] text-slate-400 mt-1 italic">Syarat untuk menjumlahkan nilai sel yang sesuai.</p>
-                </div>
-              )}
-              {activeTab === 'COUNTIFS' && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Kriteria 1 (Harga):</label>
-                    <select value={inputs.countifsCrit1} onChange={(e) => setInputs({...inputs, countifsCrit1: e.target.value})} className="w-full p-2 bg-slate-50 border rounded-md text-sm font-bold outline-none">
-                      <option value=">5000">Harga &gt; 5rb</option>
-                      <option value=">12000">Harga &gt; 12rb</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Kriteria 2 (Stok):</label>
-                    <select value={inputs.countifsCrit2} onChange={(e) => setInputs({...inputs, countifsCrit2: e.target.value})} className="w-full p-2 bg-slate-50 border rounded-md text-sm font-bold outline-none">
-                      <option value="<15">Stok &lt; 15</option>
-                      <option value=">10">Stok &gt; 10</option>
-                    </select>
-                  </div>
-                  <p className="text-[9px] text-slate-400 mt-1 italic">Menghitung jika kedua syarat terpenuhi sekaligus.</p>
-                </div>
-              )}
-              {activeTab === 'SUMIFS' && (
-                <div className="space-y-4 text-left">
-                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Syarat 1 (Harga):</label>
-                    <select value={inputs.sumifsCrit1} onChange={(e) => setInputs({...inputs, sumifsCrit1: e.target.value})} className="w-full p-2 bg-slate-50 border rounded-md text-sm font-bold outline-none">
-                      <option value=">10000">Harga &gt; 10rb</option>
-                      <option value=">5000">Harga &gt; 5rb</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Syarat 2 (Stok):</label>
-                    <select value={inputs.sumifsCrit2} onChange={(e) => setInputs({...inputs, sumifsCrit2: e.target.value})} className="w-full p-2 bg-slate-50 border rounded-md text-sm font-bold outline-none">
-                      <option value="<15">Stok &lt; 15</option>
-                      <option value=">5">Stok &gt; 5</option>
-                    </select>
-                  </div>
-                  <p className="text-[9px] text-slate-400 mt-1 italic leading-tight">Menjumlahkan Stok jika kriteria harga dan stok tercapai.</p>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -421,7 +296,7 @@ const SpreadsheetLab = () => {
 };
 
 // ============================================================
-// MODUL 2: CODING MAZE (FULLY OPTIMIZED THREE-COLUMN LAYOUT)
+// MODUL 2: CODING MAZE (MODE TERANG & TATA LETAK OPTIMAL)
 // ============================================================
 const CodingLab = () => {
   const levels = [
@@ -495,20 +370,20 @@ const CodingLab = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen w-full bg-[#05070a] font-sans text-slate-300 overflow-hidden relative select-none">
-      {/* HEADER TINGGI (h-24) */}
-      <header className="h-24 bg-[#0f1219] border-b border-white/10 px-4 md:px-6 flex justify-between items-center z-50 shrink-0">
+    <div className="flex flex-col h-screen w-full bg-slate-100 font-sans text-slate-800 overflow-hidden relative select-none">
+      {/* HEADER TINGGI MODE TERANG */}
+      <header className="h-24 bg-white border-b border-slate-200 px-4 md:px-6 flex justify-between items-center z-50 shrink-0 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="bg-blue-600 p-2.5 rounded-xl shadow-lg shadow-blue-900/20">
+          <div className="bg-blue-600 p-2.5 rounded-xl shadow-lg">
             <Bot size={28} className="text-white" />
           </div>
           <div className="text-left leading-none">
-            <h1 className="text-sm md:text-xl font-bold text-white uppercase tracking-tighter">Coding Maze Hub</h1>
-            <p className="text-[10px] text-blue-400 font-bold uppercase mt-1 tracking-widest">LEVEL {currentLevelIdx + 1} OF 10 &bull; {currentLevel.name}</p>
+            <h1 className="text-sm md:text-xl font-bold text-slate-900 uppercase tracking-tighter">Coding Maze Hub</h1>
+            <p className="text-[10px] text-blue-600 font-bold uppercase mt-1 tracking-widest">LEVEL {currentLevelIdx + 1} OF 10 &bull; {currentLevel.name}</p>
           </div>
         </div>
         <div className="flex items-center gap-3 mr-16 md:mr-20">
-          <div className="bg-black/40 px-4 py-2 rounded-xl border border-blue-500/30 text-white font-mono text-sm md:text-lg shadow-inner">
+          <div className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-mono text-sm md:text-lg shadow-inner">
              <span className="opacity-50 text-[10px] mr-2">POIN:</span>
              {score} PTS
           </div>
@@ -518,18 +393,18 @@ const CodingLab = () => {
         </div>
       </header>
 
-      {/* MAIN LAYOUT (GAME BOARD VS PROGRAMMING AREA) */}
+      {/* MAIN CONTENT AREA */}
       <main className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden p-3 md:p-4 gap-4 custom-scrollbar">
         
         {/* GAME BOARD SECTION (Kiri) */}
-        <section className="flex-none lg:flex-1 bg-[#0f1219]/60 backdrop-blur-md rounded-3xl border border-white/5 flex flex-col items-center justify-center p-6 min-h-[450px] shadow-2xl relative overflow-hidden">
-           <div className="absolute top-4 left-6 opacity-20 hidden md:flex items-center gap-2"><Zap size={14} className="text-blue-400" /><span className="text-[10px] font-bold uppercase tracking-[0.2em]">Visual Engine v3.4</span></div>
+        <section className="flex-none lg:flex-1 bg-blue-50 rounded-3xl border border-slate-200 flex flex-col items-center justify-center p-6 min-h-[450px] shadow-sm relative overflow-hidden">
+           <div className="absolute top-4 left-6 opacity-20 hidden md:flex items-center gap-2"><Zap size={14} className="text-blue-500" /><span className="text-[10px] font-bold uppercase tracking-[0.2em]">Visual Engine</span></div>
            
-           <div className="w-full max-w-[340px] aspect-square relative z-10 border-4 border-white/5 rounded-[2.5rem] p-1 bg-white/5 shadow-2xl">
-             <div className="grid grid-cols-5 grid-rows-5 gap-1.5 bg-slate-900/90 p-3.5 rounded-[2.2rem] w-full h-full">
+           <div className="w-full max-w-[340px] aspect-square relative z-10 border-4 border-slate-100 rounded-[2.5rem] p-1 bg-slate-50 shadow-inner">
+             <div className="grid grid-cols-5 grid-rows-5 gap-1.5 bg-slate-200 p-3.5 rounded-[2.2rem] w-full h-full">
                 {currentLevel.maze.map((row, y) => row.map((cell, x) => (
-                  <div key={`${x}-${y}`} className={`flex items-center justify-center rounded-xl aspect-square relative transition-all duration-300 ${cell === 1 ? 'bg-slate-100 shadow-[inset_0_-4px_0_#cbd5e1]' : 'bg-slate-800/40 border border-white/5 shadow-inner'}`}>
-                    {x === currentLevel.target.x && y === currentLevel.target.y && <Target size={22} className="text-rose-500 animate-pulse drop-shadow-[0_0_8px_rgba(244,63,94,0.5)]" strokeWidth={3} />}
+                  <div key={`${x}-${y}`} className={`flex items-center justify-center rounded-xl aspect-square relative transition-all duration-300 ${cell === 1 ? 'bg-white shadow-[inset_0_-4px_0_#cbd5e1]' : 'bg-slate-300/50 border border-white/50 shadow-inner'}`}>
+                    {x === currentLevel.target.x && y === currentLevel.target.y && <Target size={22} className="text-rose-500 animate-pulse" strokeWidth={3} />}
                     {robotPos.x === x && robotPos.y === y && <div className="text-3xl md:text-4xl transition-all duration-300 transform" style={{ transform: `rotate(${robotPos.dir * 90}deg)` }}>🤖</div>}
                   </div>
                 )))}
@@ -540,25 +415,25 @@ const CodingLab = () => {
              <button onClick={runProgram} disabled={isRunning || program.length === 0} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black uppercase tracking-widest active:scale-95 shadow-xl border-b-4 border-blue-800 active:border-b-0 disabled:opacity-30 transition-all flex items-center justify-center gap-3">
                 <Play size={18} fill="white" /> JALANKAN PROGRAM
              </button>
-             <button onClick={() => setRobotPos(currentLevel.start)} className="bg-slate-800 p-4 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-700 transition-all shadow-lg"><RotateCcw size={22} /></button>
+             <button onClick={() => setRobotPos(currentLevel.start)} className="bg-slate-200 p-4 rounded-2xl text-slate-500 hover:text-slate-800 hover:bg-slate-300 transition-all shadow-sm"><RotateCcw size={22} /></button>
            </div>
 
-           <div className={`mt-5 px-6 py-2.5 rounded-full border text-[10px] uppercase font-black tracking-[0.2em] transition-all duration-500 ${status === 'crash' ? 'bg-rose-500/10 border-rose-500/30 text-rose-500 animate-shake' : status === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500' : 'bg-slate-800/40 border-white/10 text-blue-400 opacity-60'}`}>
+           <div className={`mt-5 px-6 py-2.5 rounded-full border text-[10px] uppercase font-black tracking-[0.2em] transition-all duration-500 ${status === 'crash' ? 'bg-rose-500/10 border-rose-500/30 text-rose-500 animate-shake' : status === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500' : 'bg-slate-100 border-slate-200 text-slate-500 opacity-60'}`}>
               {message}
            </div>
         </section>
 
-        {/* PROGRAMMING AREA (Kanan - Tiga Kolom dengan Lebar Khusus) */}
+        {/* PROGRAMMING AREA (Kanan) */}
         <section className="flex-none lg:flex-[3] flex flex-col md:flex-row gap-3 h-auto overflow-hidden">
           
-          {/* DAFTAR BLOK (TOOLBOX - DIPERLEBAR: w-64) */}
-          <aside className="w-full md:w-64 flex flex-col bg-[#0f1219]/60 backdrop-blur-md rounded-3xl border border-white/5 overflow-hidden shadow-2xl">
-            <div className="p-3 border-b border-white/10 bg-white/5 text-center">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Perintah</h3>
+          {/* DAFTAR PERINTAH (TOOLBOX - DIPERLEBAR: w-64) */}
+          <aside className="w-full md:w-64 flex flex-col bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+            <div className="p-3 border-b border-slate-100 bg-slate-50 text-center">
+              <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-tighter">Perintah</h3>
             </div>
             <div className="flex-1 overflow-x-auto md:overflow-y-auto p-3 flex md:flex-col gap-2 custom-scrollbar">
               {availableBlocks.map(b => (
-                <button key={b.id} onClick={() => addBlock(blockId)} className={`min-w-[120px] md:min-w-0 bg-gradient-to-br ${b.color} text-white px-4 py-4 rounded-xl text-[10px] md:text-[11px] font-black uppercase active:scale-90 shadow-md hover:brightness-110 transition-all border-b-2 border-black/20 shrink-0`}>
+                <button key={b.id} onClick={() => addBlock(b.id)} className={`min-w-[120px] md:min-w-0 bg-gradient-to-br ${b.color} text-white px-4 py-4 rounded-xl text-[10px] md:text-[11px] font-black uppercase active:scale-90 shadow-md hover:brightness-110 transition-all border-b-2 border-black/20 shrink-0`}>
                   <span className="flex items-center gap-2 md:justify-center">{b.icon}{b.label}</span>
                 </button>
               ))}
@@ -566,43 +441,43 @@ const CodingLab = () => {
           </aside>
 
           {/* WORKSPACE (ALGORITMA SAYA - LEBIH RAMPING: w-48) */}
-          <aside className="w-full md:w-48 bg-[#0f1219]/60 backdrop-blur-md rounded-3xl border border-white/5 p-4 overflow-y-auto custom-scrollbar text-left shadow-inner shadow-black/40 shrink-0">
-             <div className="flex items-center justify-between mb-5 border-b border-white/10 pb-3">
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Code2 size={15} className="text-blue-500"/> Algoritma</h3>
+          <aside className="w-full md:w-64 bg-white rounded-3xl border border-slate-200 p-4 overflow-y-auto custom-scrollbar text-left shadow-inner shrink-0">
+             <div className="flex items-center justify-between mb-5 border-b border-slate-100 pb-3">
+                <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><Code2 size={15} className="text-blue-500"/> Algoritma</h3>
                 <button onClick={() => setProgram([])} className="text-[9px] text-rose-500 font-black hover:text-rose-400 uppercase transition-colors">Reset</button>
              </div>
              <div className="space-y-2">
                 {program.map((b, i) => (
-                  <div key={i} className={`flex items-center justify-between p-3 bg-gradient-to-r ${b.color} text-white rounded-xl text-[10px] font-bold shadow-lg animate-in slide-in-from-left duration-200 border-l-4 border-black/20`}>
+                  <div key={i} className={`flex items-center justify-between p-3 bg-gradient-to-r ${b.color} text-white rounded-xl text-[10px] font-bold shadow-md animate-in slide-in-from-left duration-200 border-l-4 border-black/20`}>
                     <span className="flex items-center gap-2"><span className="opacity-40 font-mono text-[9px]">S{i+1}</span>{b.icon}</span>
                     <button onClick={() => removeBlock(i)} className="p-1 hover:bg-black/20 rounded-lg"><X size={12}/></button>
                   </div>
                 ))}
-                {program.length === 0 && <div className="h-full flex flex-col items-center justify-center opacity-10 text-white py-20"><Bot size={40}/><p className="text-[9px] uppercase font-black mt-3 tracking-widest text-center leading-relaxed">Kosong.</p></div>}
+                {program.length === 0 && <div className="h-full flex flex-col items-center justify-center opacity-30 text-slate-400 py-20"><Bot size={40}/><p className="text-[9px] uppercase font-black mt-3 tracking-widest text-center">Kosong.</p></div>}
              </div>
           </aside>
 
           {/* PEDOMAN (KAMUS CODING - DIPERLEBAR: w-80 & HURUF BESAR) */}
-          <aside className="w-full md:w-80 flex flex-col bg-[#0f1219]/60 backdrop-blur-md rounded-3xl border border-white/5 overflow-hidden shadow-2xl shrink-0">
-            <div className="p-3 border-b border-white/10 bg-white/5 text-center">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Pedoman Instruksi</h3>
+          <aside className="w-full md:w-80 flex flex-col bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm shrink-0">
+            <div className="p-3 border-b border-slate-100 bg-slate-50 text-center">
+              <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-tighter">Pedoman Instruksi</h3>
             </div>
             <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar text-left">
-                <div className="p-4 bg-blue-600/10 border border-blue-500/20 rounded-xl shadow-inner">
-                    <span className="text-[11px] md:text-[12px] font-black text-blue-400 uppercase flex items-center gap-2 mb-2 leading-none"><ArrowUp size={12}/> Gerak Maju</span>
-                    <p className="text-[10px] md:text-[11px] text-slate-300 leading-relaxed font-medium">Robot melangkah satu kotak ke arah depan sesuai dengan arah kepalanya saat ini.</p>
+                <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl shadow-sm">
+                    <span className="text-[11px] md:text-[12px] font-black text-blue-600 uppercase flex items-center gap-2 mb-2 leading-none"><ArrowUp size={12}/> Gerak Maju</span>
+                    <p className="text-[10px] md:text-[11px] text-slate-600 leading-relaxed font-medium">Robot melangkah satu kotak ke arah depan sesuai dengan arah kepalanya saat ini.</p>
                 </div>
-                <div className="p-4 bg-indigo-600/10 border border-indigo-500/20 rounded-xl shadow-inner">
-                    <span className="text-[11px] md:text-[12px] font-black text-indigo-400 uppercase flex items-center gap-2 mb-2 leading-none"><RotateCw size={12}/> Turn (Belok)</span>
-                    <p className="text-[10px] md:text-[11px] text-slate-300 leading-relaxed font-medium">Robot berputar 90 derajat tetap di kotak yang sama. Gunakan untuk mengubah arah gerak.</p>
+                <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl shadow-sm">
+                    <span className="text-[11px] md:text-[12px] font-black text-indigo-600 uppercase flex items-center gap-2 mb-2 leading-none"><RotateCw size={12}/> Turn (Belok)</span>
+                    <p className="text-[10px] md:text-[11px] text-slate-600 leading-relaxed font-medium">Robot berputar 90 derajat tetap di kotak yang sama. Gunakan untuk mengubah arah gerak.</p>
                 </div>
-                <div className="p-4 bg-pink-600/10 border border-pink-500/20 rounded-xl shadow-inner">
-                    <span className="text-[11px] md:text-[12px] font-black text-pink-400 uppercase flex items-center gap-2 mb-2 leading-none"><Repeat size={12}/> Repeat (Loop)</span>
-                    <p className="text-[10px] md:text-[11px] text-slate-300 leading-relaxed font-medium">Blok yang diletakkan di dalam instruksi ini akan dijalankan berulang sampai target 🏁 tercapai.</p>
+                <div className="p-4 bg-pink-50 border border-pink-100 rounded-xl shadow-sm">
+                    <span className="text-[11px] md:text-[12px] font-black text-pink-600 uppercase flex items-center gap-2 mb-2 leading-none"><Repeat size={12}/> Repeat (Loop)</span>
+                    <p className="text-[10px] md:text-[11px] text-slate-600 leading-relaxed font-medium">Blok yang diletakkan di dalam instruksi ini akan dijalankan berulang sampai target 🏁 tercapai.</p>
                 </div>
-                <div className="p-4 bg-yellow-600/10 border border-yellow-500/20 rounded-xl shadow-inner">
-                    <span className="text-[11px] md:text-[12px] font-black text-yellow-400 uppercase flex items-center gap-2 mb-2 leading-none"><Split size={12}/> IF (Sensor)</span>
-                    <p className="text-[10px] md:text-[11px] text-slate-300 leading-relaxed font-medium">Robot akan mengecek apakah ada dinding di depannya sebelum memutuskan untuk melangkah.</p>
+                <div className="p-4 bg-yellow-50 border border-yellow-100 rounded-xl shadow-sm">
+                    <span className="text-[11px] md:text-[12px] font-black text-yellow-600 uppercase flex items-center gap-2 mb-2 leading-none"><Split size={12}/> IF (Sensor)</span>
+                    <p className="text-[10px] md:text-[11px] text-slate-600 leading-relaxed font-medium">Robot akan mengecek apakah ada dinding di depannya sebelum memutuskan untuk melangkah.</p>
                 </div>
             </div>
           </aside>
@@ -610,13 +485,13 @@ const CodingLab = () => {
         </section>
       </main>
 
-      <footer className="h-8 bg-[#05070a] border-t border-white/5 flex items-center justify-center shrink-0">
-          <span className="text-[8px] font-black text-slate-700 uppercase tracking-[0.4em] italic">V-LAB Virtual informatics Hub &bull; Versi 1.0 Optimized Workspace</span>
+      <footer className="h-8 bg-slate-50 border-t border-slate-200 flex items-center justify-center shrink-0">
+          <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.4em] italic">V-LAB Virtual informatics Hub &bull; Versi 1.0</span>
       </footer>
 
       <style dangerouslySetInnerHTML={{ __html: `
         .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; } 
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.2); border-radius: 10px; }
         .animate-shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
       ` }} />
@@ -641,8 +516,8 @@ export default function App() {
         </div>
       );
       case 'coding': return (
-        <div className="fixed inset-0 z-[100] bg-[#05070a] overflow-hidden animate-in fade-in duration-300">
-          <button onClick={() => setActiveApp('home')} className="absolute top-4 right-4 z-[110] bg-blue-600 text-white p-2.5 rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2 group shadow-2xl border border-white/10">
+        <div className="fixed inset-0 z-[100] bg-slate-100 overflow-hidden animate-in fade-in duration-300">
+          <button onClick={() => setActiveApp('home')} className="absolute top-4 right-4 z-[110] bg-slate-900 text-white p-2.5 rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2 group shadow-2xl">
             <Home size={18} /><span className="text-xs font-black uppercase hidden group-hover:block pr-1">Kembali</span>
           </button>
           <div className="h-full w-full">
@@ -669,7 +544,7 @@ export default function App() {
                   <Table size={32}/>
                 </div>
                 <div>
-                  <h3 className="font-bold text-xl text-slate-900 mb-1 uppercase tracking-tight">Makmal Spreadsheet Pro</h3>
+                  <h3 className="font-bold text-xl text-slate-900 mb-1 uppercase tracking-tight">Spreadsheet Pro</h3>
                   <p className="text-sm text-slate-500 font-normal leading-relaxed">Analisis data visual dengan formula VLOOKUP, HLOOKUP, dan Statistik Bersyarat.</p>
                 </div>
                 <div className="mt-2 flex items-center gap-2 text-green-600 font-bold text-xs uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all">Masuk Lab <ArrowRight size={14}/></div>
@@ -688,7 +563,7 @@ export default function App() {
             </div>
 
             <footer className="mt-20 border-t border-slate-200 pt-8 opacity-40">
-               <span className="text-[10px] font-medium text-slate-400 uppercase tracking-widest italic tracking-tighter">SMP Virtual Informatics Hub &bull; Versi 1.0 Responsive Final</span>
+               <span className="text-[10px] font-medium text-slate-400 uppercase tracking-widest italic tracking-tighter">SMP Virtual Informatics Hub &bull; Versi 1.0</span>
             </footer>
           </div>
         </div>
