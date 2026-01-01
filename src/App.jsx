@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Grid, List, HelpCircle, ArrowRight, MousePointer2, Info, Settings2, Edit3, Lightbulb, ChevronDown, BookOpen } from 'lucide-react';
+import { Table, Grid, List, HelpCircle, ArrowRight, MousePointer2, Info, Settings2, Edit3, Lightbulb, ChevronDown, BookOpen, Sigma, Calculator } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('VLOOKUP');
@@ -36,7 +36,18 @@ export default function App() {
     matchType: '0',
     indexRow: '3',
     indexCol: '2',
-    chooseIndex: '1'
+    chooseIndex: '1',
+    // New Inputs for Conditional Math
+    countifRange: 'D2:D5',
+    countifCriteria: '>10',
+    sumifRange: 'C2:C5',
+    sumifCriteria: '>10000',
+    sumifSumRange: 'C2:C5',
+    countifsCrit1: '>5000',
+    countifsCrit2: '<15',
+    sumifsSumRange: 'D2:D5',
+    sumifsCrit1: '>10000',
+    sumifsCrit2: '<15'
   });
 
   const getMatchOptions = () => {
@@ -46,9 +57,20 @@ export default function App() {
     return [];
   };
 
+  const evaluateCriteria = (value, criteria) => {
+    const strVal = value.toString();
+    const numVal = parseFloat(value);
+    
+    if (criteria.startsWith('>=')) return numVal >= parseFloat(criteria.slice(2));
+    if (criteria.startsWith('<=')) return numVal <= parseFloat(criteria.slice(2));
+    if (criteria.startsWith('>')) return numVal > parseFloat(criteria.slice(1));
+    if (criteria.startsWith('<')) return numVal < parseFloat(criteria.slice(1));
+    return strVal.toLowerCase() === criteria.toLowerCase();
+  };
+
   const runSimulation = () => {
     let cells = [];
-    let res = "";
+    let res = 0;
 
     try {
       if (activeTab === 'VLOOKUP') {
@@ -94,6 +116,53 @@ export default function App() {
           res = chooseData[0][idx];
         } else res = "#VALUE!";
       }
+      else if (activeTab === 'COUNTIF') {
+        const col = 3; // Stok
+        let count = 0;
+        verticalData.slice(1).forEach((row, i) => {
+          if (evaluateCriteria(row[col], inputs.countifCriteria)) {
+            count++;
+            cells.push(`v-r${i+1}-c${col}`);
+          }
+        });
+        res = count;
+      }
+      else if (activeTab === 'SUMIF') {
+        const critCol = 2; // Harga
+        const sumCol = 2; // Harga
+        let sum = 0;
+        verticalData.slice(1).forEach((row, i) => {
+          if (evaluateCriteria(row[critCol], inputs.sumifCriteria)) {
+            sum += parseFloat(row[sumCol]);
+            cells.push(`v-r${i+1}-c${critCol}`);
+          }
+        });
+        res = sum;
+      }
+      else if (activeTab === 'COUNTIFS') {
+        let count = 0;
+        verticalData.slice(1).forEach((row, i) => {
+          const match1 = evaluateCriteria(row[2], inputs.countifsCrit1); // Harga
+          const match2 = evaluateCriteria(row[3], inputs.countifsCrit2); // Stok
+          if (match1 && match2) {
+            count++;
+            cells.push(`v-r${i+1}-c2`, `v-r${i+1}-c3`);
+          }
+        });
+        res = count;
+      }
+      else if (activeTab === 'SUMIFS') {
+        let sum = 0;
+        verticalData.slice(1).forEach((row, i) => {
+          const match1 = evaluateCriteria(row[2], inputs.sumifsCrit1); // Harga
+          const match2 = evaluateCriteria(row[3], inputs.sumifsCrit2); // Stok
+          if (match1 && match2) {
+            sum += parseFloat(row[3]); // Sum Stok
+            cells.push(`v-r${i+1}-c2`, `v-r${i+1}-c3`);
+          }
+        });
+        res = sum;
+      }
     } catch (e) { res = "#ERROR!"; }
     setHighlightedCells(cells);
     setResult(res);
@@ -129,6 +198,26 @@ export default function App() {
         title: "Choose (Memilih dari Daftar)",
         desc: "Memilih satu nilai dari beberapa pilihan berdasarkan angka urutan yang diberikan.",
         syntax: "=CHOOSE(indeks_pilihan; pilihan1; pilihan2; ...)"
+      };
+      case 'COUNTIF': return {
+        title: "Countif (Menghitung Bersyarat)",
+        desc: "Menghitung jumlah sel yang memenuhi satu kriteria tertentu.",
+        syntax: "=COUNTIF(rentang; kriteria)"
+      };
+      case 'SUMIF': return {
+        title: "Sumif (Menjumlahkan Bersyarat)",
+        desc: "Menjumlahkan nilai sel yang memenuhi satu kriteria tertentu.",
+        syntax: "=SUMIF(rentang; kriteria; [rentang_jumlah])"
+      };
+      case 'COUNTIFS': return {
+        title: "Countifs (Banyak Kriteria)",
+        desc: "Menghitung sel berdasarkan banyak kriteria sekaligus (Kriteria 1 DAN Kriteria 2).",
+        syntax: "=COUNTIFS(rentang1; kriteria1; rentang2; kriteria2; ...)"
+      };
+      case 'SUMIFS': return {
+        title: "Sumifs (Banyak Kriteria)",
+        desc: "Menjumlahkan nilai sel berdasarkan banyak kriteria sekaligus.",
+        syntax: "=SUMIFS(rentang_jumlah; rentang1; kriteria1; ...)"
       };
       default: return {};
     }
@@ -168,7 +257,7 @@ export default function App() {
             
             {/* Tabel Vertikal (Utama) */}
             <div className="mb-6">
-              <p className="text-[10px] text-slate-500 mb-1 italic font-medium">Tabel Vertikal: Data disusun dari atas ke bawah (Record per Baris).</p>
+              <p className="text-[10px] text-slate-500 mb-1 italic font-medium">Tabel Vertikal: Range A1:D5 (Data Utama Kantin).</p>
               <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
                 <table className="w-full border-collapse text-sm">
                   <thead>
@@ -191,51 +280,57 @@ export default function App() {
               </div>
             </div>
 
-            {/* Tabel Horizontal */}
-            <div className="mb-6">
-              <p className="text-[10px] text-slate-500 mb-1 italic font-medium">Tabel Horizontal: Data disusun dari kiri ke kanan (Record per Kolom).</p>
-              <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
-                <table className="border-collapse text-sm min-w-full">
-                  <tbody>
-                    <tr className="bg-slate-100">
-                      <th className="border border-slate-200 p-1 w-10 text-[10px] text-slate-400 bg-slate-50"></th>
-                      {horizontalData[0].map((_, i) => (<th key={i} className="border border-slate-200 p-1 text-center font-normal text-slate-500 bg-slate-50">{colLetters[i]}</th>))}
-                    </tr>
-                    {horizontalData.map((row, rIdx) => (
-                      <tr key={rIdx}>
-                        <td className="border border-slate-200 p-1 text-center text-[10px] text-slate-400 bg-slate-50 font-bold">{rIdx + 10}</td>
-                        {row.map((cell, cIdx) => (
-                          <td key={cIdx} className={`border border-slate-200 p-2 min-w-[80px] transition-all duration-300 ${highlightedCells.includes(`h-r${rIdx}-c${cIdx}`) ? 'bg-emerald-100 border-emerald-500 ring-2 ring-emerald-400 ring-inset font-bold text-emerald-900' : 'bg-white'} ${rIdx === 0 ? 'font-bold bg-slate-50/50 text-slate-600' : ''}`}>{cell}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            {/* Hidden for simplicity unless needed */}
+            {(activeTab === 'HLOOKUP') && (
+               <div className="mb-6">
+               <p className="text-[10px] text-slate-500 mb-1 italic font-medium">Tabel Horizontal: Range A10:E11 (Record disusun menyamping).</p>
+               <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
+                 <table className="border-collapse text-sm min-w-full">
+                   <tbody>
+                     <tr className="bg-slate-100">
+                       <th className="border border-slate-200 p-1 w-10 text-[10px] text-slate-400 bg-slate-50"></th>
+                       {horizontalData[0].map((_, i) => (<th key={i} className="border border-slate-200 p-1 text-center font-normal text-slate-500 bg-slate-50">{colLetters[i]}</th>))}
+                     </tr>
+                     {horizontalData.map((row, rIdx) => (
+                       <tr key={rIdx}>
+                         <td className="border border-slate-200 p-1 text-center text-[10px] text-slate-400 bg-slate-50 font-bold">{rIdx + 10}</td>
+                         {row.map((cell, cIdx) => (
+                           <td key={cIdx} className={`border border-slate-200 p-2 min-w-[80px] transition-all duration-300 ${highlightedCells.includes(`h-r${rIdx}-c${cIdx}`) ? 'bg-emerald-100 border-emerald-500 ring-2 ring-emerald-400 ring-inset font-bold text-emerald-900' : 'bg-white'} ${rIdx === 0 ? 'font-bold bg-slate-50/50 text-slate-600' : ''}`}>{cell}</td>
+                         ))}
+                       </tr>
+                     ))}
+                   </tbody>
+                 </table>
+               </div>
+             </div>
+            )}
 
             {/* Tabel CHOOSE */}
-            <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-              <MousePointer2 className="w-3 h-3 text-purple-500" /> Data Lepas untuk CHOOSE (Baris 14)
-            </h2>
-            <div className="overflow-x-auto rounded-lg border border-slate-200">
-              <table className="border-collapse text-sm min-w-full">
-                <thead>
-                  <tr className="bg-slate-100">
-                    <th className="border border-slate-200 p-1 w-10 text-[10px] text-slate-400 bg-slate-50"></th>
-                    {chooseData[0].map((_, i) => (<th key={i} className="border border-slate-200 p-1 text-center font-normal text-slate-500 bg-slate-50">{colLetters[i]}</th>))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="border border-slate-200 p-1 text-center text-[10px] text-slate-400 bg-slate-50 font-bold">14</td>
-                    {chooseData[0].map((cell, cIdx) => (
-                      <td key={cIdx} className={`border border-slate-200 p-2 min-w-[100px] text-center transition-all duration-300 ${highlightedCells.includes(`c-r0-c${cIdx}`) ? 'bg-purple-100 border-purple-500 ring-2 ring-purple-400 ring-inset font-bold text-purple-900' : 'bg-white text-slate-400'}`}>{cell}</td>
-                    ))}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            {activeTab === 'CHOOSE' && (
+               <div className="mt-4">
+               <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                 <MousePointer2 className="w-3 h-3 text-purple-500" /> Data Lepas untuk CHOOSE (Baris 14)
+               </h2>
+               <div className="overflow-x-auto rounded-lg border border-slate-200">
+                 <table className="border-collapse text-sm min-w-full">
+                   <thead>
+                     <tr className="bg-slate-100">
+                       <th className="border border-slate-200 p-1 w-10 text-[10px] text-slate-400 bg-slate-50"></th>
+                       {chooseData[0].map((_, i) => (<th key={i} className="border border-slate-200 p-1 text-center font-normal text-slate-500 bg-slate-50">{colLetters[i]}</th>))}
+                     </tr>
+                   </thead>
+                   <tbody>
+                     <tr>
+                       <td className="border border-slate-200 p-1 text-center text-[10px] text-slate-400 bg-slate-50 font-bold">14</td>
+                       {chooseData[0].map((cell, cIdx) => (
+                         <td key={cIdx} className={`border border-slate-200 p-2 min-w-[100px] text-center transition-all duration-300 ${highlightedCells.includes(`c-r0-c${cIdx}`) ? 'bg-purple-100 border-purple-500 ring-2 ring-purple-400 ring-inset font-bold text-purple-900' : 'bg-white text-slate-400'}`}>{cell}</td>
+                       ))}
+                     </tr>
+                   </tbody>
+                 </table>
+               </div>
+             </div>
+            )}
           </div>
 
           {/* Bar Formula */}
@@ -249,6 +344,10 @@ export default function App() {
                 {activeTab === 'MATCH' && `=MATCH("${inputs.matchValue}"; ${inputs.matchArray}; ${inputs.matchType})`}
                 {activeTab === 'INDEX' && `=INDEX(A1:D5; ${inputs.indexRow}; ${inputs.indexCol})`}
                 {activeTab === 'CHOOSE' && `=CHOOSE(${inputs.chooseIndex}; A14; B14; C14)`}
+                {activeTab === 'COUNTIF' && `=COUNTIF(D2:D5; "${inputs.countifCriteria}")`}
+                {activeTab === 'SUMIF' && `=SUMIF(C2:C5; "${inputs.sumifCriteria}"; C2:C5)`}
+                {activeTab === 'COUNTIFS' && `=COUNTIFS(C2:C5; "${inputs.countifsCrit1}"; D2:D5; "${inputs.countifsCrit2}")`}
+                {activeTab === 'SUMIFS' && `=SUMIFS(D2:D5; C2:C5; "${inputs.sumifsCrit1}"; D2:D5; "${inputs.sumifsCrit2}")`}
               </div>
             </div>
             <div className="p-8 flex flex-col items-center justify-center bg-green-50/20">
@@ -260,13 +359,13 @@ export default function App() {
 
         {/* Panel Kontrol & Detail */}
         <div className="space-y-6">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 sticky top-4">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 sticky top-4 max-h-[85vh] overflow-y-auto custom-scrollbar">
             <div className="flex gap-2 mb-8 flex-wrap">
-              {['VLOOKUP', 'HLOOKUP', 'MATCH', 'INDEX', 'CHOOSE'].map((tab) => (
+              {['VLOOKUP', 'HLOOKUP', 'MATCH', 'INDEX', 'CHOOSE', 'COUNTIF', 'SUMIF', 'COUNTIFS', 'SUMIFS'].map((tab) => (
                 <button 
                   key={tab} 
                   onClick={() => setActiveTab(tab)} 
-                  className={`px-3 py-1.5 rounded-full text-[10px] font-bold transition-all ${activeTab === tab ? 'bg-green-600 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                  className={`px-3 py-1.5 rounded-full text-[9px] font-bold transition-all ${activeTab === tab ? 'bg-green-600 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
                 >
                   {tab}
                 </button>
@@ -288,83 +387,113 @@ export default function App() {
                       </select>
                       <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-blue-400 pointer-events-none" />
                     </div>
-                    <p className="text-[9px] text-slate-400 mt-1 leading-tight italic">Komputer akan mencari ID ini di kolom A (Kolom paling kiri).</p>
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">col_index_num (Kolom Ke-):</label>
                     <input type="number" value={inputs.vlookupCol} onChange={(e) => setInputs({...inputs, vlookupCol: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-md text-sm font-mono focus:ring-2 ring-green-500 outline-none" />
-                    <p className="text-[9px] text-slate-400 mt-1 leading-tight italic">Jika ketemu ID-nya, ambil data di kolom ke berapa? (1:ID, 2:Menu, 3:Harga, 4:Stok).</p>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">range_lookup (Ketepatan):</label>
-                    <input type="text" value={inputs.vlookupRange} onChange={(e) => setInputs({...inputs, vlookupRange: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-md text-sm font-mono focus:ring-2 ring-green-500 outline-none" />
-                    <p className="text-[9px] text-slate-400 mt-1 leading-tight italic">Gunakan FALSE agar pencarian harus 100% sama.</p>
                   </div>
                 </>
               )}
 
-              {activeTab === 'HLOOKUP' && (
+              {activeTab === 'COUNTIF' && (
                 <>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">lookup_value (Nilai Kunci):</label>
-                    <div className="relative">
-                      <select value={inputs.hlookupValue} onChange={(e) => setInputs({...inputs, hlookupValue: e.target.value})} className="w-full p-2 bg-emerald-50 border border-emerald-200 rounded-md text-sm font-bold text-emerald-800 appearance-none focus:ring-2 ring-green-500 outline-none">
-                        {horizontalData[0].slice(1).map(m => <option key={m} value={m}>{m}</option>)}
-                      </select>
-                      <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-emerald-400 pointer-events-none" />
-                    </div>
-                    <p className="text-[9px] text-slate-400 mt-1 leading-tight italic">Mencari nama bulan di baris 10.</p>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Rentang (Kolom Stok D2:D5):</label>
+                    <input type="text" disabled value="D2:D5" className="w-full p-2 bg-slate-100 border border-slate-200 rounded-md text-sm font-mono" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">row_index_num (Baris Ke-):</label>
-                    <input type="number" value={inputs.hlookupRow} onChange={(e) => setInputs({...inputs, hlookupRow: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-md text-sm font-mono focus:ring-2 ring-green-500 outline-none" />
-                    <p className="text-[9px] text-slate-400 mt-1 leading-tight italic">Data yang diambil ada di baris ke berapa dalam rentang? (Baris 1:Bulan, 2:Omzet).</p>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Kriteria:</label>
+                    <select value={inputs.countifCriteria} onChange={(e) => setInputs({...inputs, countifCriteria: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-md text-sm">
+                      <option value=">10">Ada lebih dari 10 Stok (&gt;10)</option>
+                      <option value="<15">Kurang dari 15 Stok (&lt;15)</option>
+                      <option value=">=15">Minimal 15 Stok (&gt;=15)</option>
+                    </select>
                   </div>
                 </>
+              )}
+
+              {activeTab === 'SUMIF' && (
+                <>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Rentang Cek (Kolom Harga):</label>
+                    <input type="text" disabled value="C2:C5" className="w-full p-2 bg-slate-100 border border-slate-200 rounded-md text-sm font-mono" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Kriteria:</label>
+                    <select value={inputs.sumifCriteria} onChange={(e) => setInputs({...inputs, sumifCriteria: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-md text-sm">
+                      <option value=">10000">Harga di atas 10rb (&gt;10000)</option>
+                      <option value="<=12000">Harga maks 12rb (&lt;=12000)</option>
+                    </select>
+                  </div>
+                  <p className="text-[9px] text-slate-400 italic">Keterangan: Menjumlahkan harga yang memenuhi kriteria.</p>
+                </>
+              )}
+
+              {activeTab === 'COUNTIFS' && (
+                <>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Kriteria 1 (Harga):</label>
+                    <select value={inputs.countifsCrit1} onChange={(e) => setInputs({...inputs, countifsCrit1: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-md text-sm">
+                      <option value=">5000">Harga &gt; 5000</option>
+                      <option value=">12000">Harga &gt; 12000</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">DAN Kriteria 2 (Stok):</label>
+                    <select value={inputs.countifsCrit2} onChange={(e) => setInputs({...inputs, countifsCrit2: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-md text-sm">
+                      <option value="<15">Stok &lt; 15</option>
+                      <option value=">10">Stok &gt; 10</option>
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {activeTab === 'SUMIFS' && (
+                <>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Rentang Jumlah (Stok):</label>
+                    <input type="text" disabled value="D2:D5" className="w-full p-2 bg-slate-100 border border-slate-200 rounded-md text-sm font-mono" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Kriteria 1 (Harga):</label>
+                    <select value={inputs.sumifsCrit1} onChange={(e) => setInputs({...inputs, sumifsCrit1: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-md text-sm">
+                      <option value=">10000">Harga &gt; 10rb</option>
+                      <option value=">5000">Harga &gt; 5rb</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Kriteria 2 (Stok):</label>
+                    <select value={inputs.sumifsCrit2} onChange={(e) => setInputs({...inputs, sumifsCrit2: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-md text-sm">
+                      <option value="<15">Stok &lt; 15</option>
+                      <option value=">5">Stok &gt; 5</option>
+                    </select>
+                  </div>
+                  <p className="text-[9px] text-slate-400 italic">Keterangan: Menjumlahkan Stok yang menunya mahal DAN stoknya sedikit.</p>
+                </>
+              )}
+
+              {/* Simplified existing ones to save space */}
+              {activeTab === 'INDEX' && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Baris:</label>
+                    <input type="number" value={inputs.indexRow} onChange={(e) => setInputs({...inputs, indexRow: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-md text-sm font-mono" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Kolom:</label>
+                    <input type="number" value={inputs.indexCol} onChange={(e) => setInputs({...inputs, indexCol: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-md text-sm font-mono" />
+                  </div>
+                </div>
               )}
 
               {activeTab === 'MATCH' && (
                 <>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">lookup_array (Rentang Data):</label>
-                    <select value={inputs.matchArray} onChange={(e) => setInputs({...inputs, matchArray: e.target.value, matchValue: e.target.value.includes('A') ? 'K01' : e.target.value.includes('B') ? 'Nasi Goreng' : '15000'})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-md text-sm">
-                      <option value="A1:A5">A1:A5 (Kolom ID)</option>
-                      <option value="B1:B5">B1:B5 (Kolom Menu)</option>
-                      <option value="C1:C5">C1:C5 (Kolom Harga)</option>
+                  <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Data Dicari:</label>
+                  <div className="relative">
+                    <select value={inputs.matchValue} onChange={(e) => setInputs({...inputs, matchValue: e.target.value})} className="w-full p-2 bg-amber-50 border border-amber-200 rounded-md text-sm font-bold appearance-none">
+                      {getMatchOptions().map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">lookup_value (Data Dicari):</label>
-                    <div className="relative">
-                      <select value={inputs.matchValue} onChange={(e) => setInputs({...inputs, matchValue: e.target.value})} className="w-full p-2 bg-amber-50 border border-amber-200 rounded-md text-sm font-bold text-amber-800 appearance-none focus:ring-2 ring-green-500 outline-none">
-                        {getMatchOptions().map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                      </select>
-                      <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-amber-400 pointer-events-none" />
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {activeTab === 'INDEX' && (
-                <>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">row_num (Baris):</label>
-                    <input type="number" value={inputs.indexRow} onChange={(e) => setInputs({...inputs, indexRow: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-md text-sm font-mono focus:ring-2 ring-green-500 outline-none" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">column_num (Kolom):</label>
-                    <input type="number" value={inputs.indexCol} onChange={(e) => setInputs({...inputs, indexCol: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-md text-sm font-mono focus:ring-2 ring-green-500 outline-none" />
-                    <p className="text-[9px] text-slate-400 mt-1 leading-tight italic">Tentukan koordinat sel. Contoh Baris 3, Kolom 2 = Mie Ayam.</p>
-                  </div>
-                </>
-              )}
-
-              {activeTab === 'CHOOSE' && (
-                <>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">index_num (Nomor Pilihan):</label>
-                    <input type="number" value={inputs.chooseIndex} onChange={(e) => setInputs({...inputs, chooseIndex: e.target.value})} className="w-full p-2 bg-purple-50 border border-purple-200 rounded-md text-sm font-bold text-purple-800 focus:ring-2 ring-purple-500 outline-none" />
-                    <p className="text-[9px] text-slate-400 mt-1 leading-tight italic">Pilih angka 1 untuk pilihan pertama (A14), 2 untuk pilihan kedua (B14), dst.</p>
+                    <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-amber-400 pointer-events-none" />
                   </div>
                 </>
               )}
@@ -378,8 +507,8 @@ export default function App() {
                  </h4>
                  <div className="space-y-3 text-[10px] text-slate-300 leading-relaxed">
                     <p><span className="text-yellow-400 font-bold uppercase">Algoritma:</span> Langkah sistematis komputer mencari data: Mulai dari baris/kolom pertama → Cek kesesuaian → Berikan hasil.</p>
-                    <p><span className="text-yellow-400 font-bold uppercase">Abstraksi:</span> Kamu tidak perlu tahu bagaimana Excel memindai jutaan sel di belakang layar, cukup berikan input yang benar (alamat sel/nomor indeks).</p>
-                    <p><span className="text-yellow-400 font-bold uppercase">Dekomposisi:</span> Memecah rumus kompleks menjadi beberapa argumen (nilai dicari, rentang, nomor urut).</p>
+                    <p><span className="text-yellow-400 font-bold uppercase">Logika Matematika:</span> SUMIF dan COUNTIF menggunakan operator perbandingan (&gt;, &lt;, =) untuk memproses data secara otomatis berdasarkan kondisi.</p>
+                    <p><span className="text-yellow-400 font-bold uppercase">Dekomposisi:</span> Memecah masalah (misal: "Berapa total stok barang mahal?") menjadi rentang kriteria, kriteria itu sendiri, dan rentang jumlah.</p>
                  </div>
                </div>
                
