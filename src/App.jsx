@@ -6,9 +6,8 @@ import App2 from './pages/Blockly'; // Game Component
 import MailMerger from './pages/MailMerger';
 import WordParagraph from './pages/WordParagraph';
 import WordPageLayout from './pages/WordPageLayout';
-import WordTabulator from './pages/WordTabulator';
+import WordTabulator from './pages/WordTabulator'; // Fixed Import
 import Blockly from './pages/Blockly';
-
 import ExcelChart from "./pages/ExcelChart"; // Import new page
 
 function App() {
