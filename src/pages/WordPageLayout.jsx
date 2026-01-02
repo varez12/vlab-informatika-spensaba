@@ -184,7 +184,7 @@ const WordPageLayout = () => {
                 </div>
 
                 {/* Ribbon Content */}
-                <div className="p-2 flex items-center gap-2 bg-[#f3f3f3] min-h-[100px] border-b border-slate-200">
+                <div className="p-2 flex items-center gap-2 bg-[#f3f3f3] min-h-[100px] border-b border-slate-200 overflow-x-auto">
                     {activeTab === 'Layout' ? (
                         <>
                             {/* Page Setup Group */}
