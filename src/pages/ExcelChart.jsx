@@ -17,8 +17,13 @@ import {
     LayoutGrid,
     Settings2,
     Filter,
-    ArrowUpDown
+    ArrowUpDown,
+    GalleryHorizontalEnd,
+    GalleryHorizontalEnd,
+    Download,
+    Trophy
 } from 'lucide-react';
+import QuizMode, { excelChartQuizQuestions } from '../components/QuizMode';
 
 const ExcelChart = () => {
     // Data Spreadsheet
@@ -37,6 +42,7 @@ const ExcelChart = () => {
     const [zoom, setZoom] = useState(100); // Zoom State
     const [guideOpen, setGuideOpen] = useState(false); // Guide Drawer State
     const [selectedCell, setSelectedCell] = useState(null); // { row: 0, col: 0 }
+    const [showQuiz, setShowQuiz] = useState(false); // Quiz State
 
     const handleCellChange = (index, newValue) => {
         const newData = [...data];
@@ -162,12 +168,33 @@ const ExcelChart = () => {
                                     </button>
                                 </SimTooltip>
 
+                                <SimTooltip content="Bar Chart: Grafik batang horizontal.">
+                                    <button
+                                        onClick={() => handleSelectChart('bar')}
+                                        className={`flex flex-col items-center p-2 rounded hover:bg-white hover:shadow-sm transition-all group ${chartType === 'bar' ? 'bg-white shadow ring-1 ring-purple-500' : ''}`}
+                                    >
+                                        <GalleryHorizontalEnd size={24} className={chartType === 'bar' ? 'text-purple-600' : 'text-slate-600'} />
+                                        <span className="text-[11px] mt-1 text-slate-600">Bar</span>
+                                    </button>
+                                </SimTooltip>
+
                                 <div className="ml-2 border-l border-[#d2d0ce] pl-4 flex flex-col justify-center h-full">
                                     <div className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
                                         Charts <ChevronDown size={10} />
                                     </div>
                                     <p className="text-[9px] text-slate-500 w-20 leading-tight">Pilih visualisasi data.</p>
+                                    <p className="text-[9px] text-slate-500 w-20 leading-tight">Pilih visualisasi data.</p>
                                 </div>
+                            </div>
+                            {/* Quiz Button */}
+                            <div className="flex items-center gap-2 px-4 border-l border-[#d2d0ce]">
+                                <button
+                                    onClick={() => setShowQuiz(true)}
+                                    className="flex flex-col items-center p-2 rounded hover:bg-white hover:shadow-sm transition-all group bg-yellow-50"
+                                >
+                                    <Trophy size={24} className="text-yellow-600" />
+                                    <span className="text-[11px] mt-1 text-slate-700 font-bold">Kuis</span>
+                                </button>
                             </div>
                         </div>
                     ) : (
@@ -314,12 +341,21 @@ const ExcelChart = () => {
                                     <span className="text-[11px] font-bold text-slate-600 flex items-center gap-2">
                                         <BarChart3 size={14} /> Chart Object
                                     </span>
-                                    <button
-                                        onClick={() => setChartType(null)}
-                                        className="hover:bg-red-50 text-gray-400 hover:text-red-500 w-5 h-5 rounded flex items-center justify-center transition-colors"
-                                    >
-                                        <X size={14} />
-                                    </button>
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={() => alert("📸 Chart diekspor sebagai 'chart_export.png'")}
+                                            className="hover:bg-slate-100 text-slate-500 hover:text-green-600 p-1 rounded transition-colors"
+                                            title="Export Chart"
+                                        >
+                                            <Download size={14} />
+                                        </button>
+                                        <button
+                                            onClick={() => setChartType(null)}
+                                            className="hover:bg-red-50 text-gray-400 hover:text-red-500 w-5 h-5 rounded flex items-center justify-center transition-colors"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
                                 </div>
                                 <h3 className="text-center font-bold text-slate-800 mb-2 text-sm">Grafik Penjualan Bulanan</h3>
                                 <div className="h-56 relative flex items-center justify-center bg-white">
@@ -403,6 +439,24 @@ const ExcelChart = () => {
                                                     })
                                                 })()}
                                             </g>
+                                        </svg>
+                                    )}
+                                    {chartType === 'bar' && (
+                                        <svg width="100%" height="100%" viewBox="0 0 400 250">
+                                            <line x1="40" y1="220" x2="40" y2="20" stroke="#cbd5e1" strokeWidth="2" />
+                                            <line x1="40" y1="220" x2="380" y2="220" stroke="#cbd5e1" strokeWidth="2" />
+                                            {data.map((item, i) => {
+                                                const max = Math.max(...data.map(d => d.value)) * 1.2;
+                                                const barW = (item.value / max) * 340;
+                                                const y = 40 + (i * 35);
+                                                return (
+                                                    <g key={i}>
+                                                        <rect x="41" y={y} width={barW} height="20" fill="#8764b8" className="hover:fill-[#6e4e9e] transition-colors" rx="2" />
+                                                        <text x="35" y={y + 14} textAnchor="end" fontSize="10" fill="#666">{item.label}</text>
+                                                        <text x={45 + barW} y={y + 14} textAnchor="start" fontSize="10" fontWeight="bold" fill="#333">{item.value}</text>
+                                                    </g>
+                                                );
+                                            })}
                                         </svg>
                                     )}
                                 </div>
@@ -489,14 +543,23 @@ const ExcelChart = () => {
                             </div>
                             <div className="space-y-2">
                                 <h4 className="font-bold text-[#217346] text-sm uppercase tracking-wider border-b pb-1 border-gray-100">Step 3: Insert Chart</h4>
-                                <p className="text-xs opacity-80">Pergi ke menu <strong>Insert</strong> dan pilih jenis grafik (Column, Line, Pie).</p>
+                                <p className="text-xs opacity-80">Pergi ke menu <strong>Insert</strong> dan pilih jenis grafik (Column, Line, Pie, Bar).</p>
                             </div>
                             <div className="bg-green-50 p-3 rounded text-xs text-green-800 border border-green-200">
-                                Tips: Data akan otomatis terpilih.
+                                Tips: Gunakan tombol Export (gbr. unduh) di atas grafik untuk menyimpan hasil.
                             </div>
                         </div>
                     </div>
                 </div>
+            )}
+            {/* Quiz Mode */}
+            {showQuiz && (
+                <QuizMode
+                    moduleId="excel_chart"
+                    moduleName="Microsoft Excel: Chart & Visualisasi"
+                    questions={excelChartQuizQuestions}
+                    onClose={() => setShowQuiz(false)}
+                />
             )}
         </div>
     );

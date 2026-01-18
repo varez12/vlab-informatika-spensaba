@@ -2,17 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
     Grid, HelpCircle, BookOpen, Play, Pause, Lightbulb, ChevronDown,
-    Calculator, Plus, TrendingUp, TrendingDown, Hash, BarChart2, AlertCircle
+    Grid, HelpCircle, BookOpen, Play, Pause, Lightbulb, ChevronDown,
+    Calculator, Plus, TrendingUp, TrendingDown, Hash, BarChart2, AlertCircle, Trophy
 } from 'lucide-react';
+import QuizMode, { excelBasicQuizQuestions } from '../components/QuizMode';
 
 // ============================================================
 // MODUL: FORMULA DASAR (SUM, AVERAGE, COUNT, MAX, MIN)
 // Versi Real - Input Sintaks Formula Sebenarnya
 // ============================================================
 
-const FormulaInput = ({ value, onChange, placeholder, isValid, errorMessage }) => (
+const FormulaInput = ({ value, onChange, placeholder, isValid, errorMessage, hintMessage }) => (
     <div className="relative">
-        <div className="flex items-center bg-slate-900 rounded-xl overflow-hidden border-2 border-slate-700 focus-within:border-blue-500 transition-all">
+        <div className={`flex items-center bg-slate-900 rounded-xl overflow-hidden border-2 transition-all ${!isValid && errorMessage ? 'border-red-500/70 ring-2 ring-red-500/20' : 'border-slate-700 focus-within:border-blue-500'}`}>
             <span className="text-blue-400 font-bold text-lg px-3 font-serif italic">fx</span>
             <input
                 type="text"
@@ -23,9 +25,16 @@ const FormulaInput = ({ value, onChange, placeholder, isValid, errorMessage }) =
             />
         </div>
         {!isValid && errorMessage && (
-            <div className="flex items-center gap-2 mt-2 text-red-400 text-xs">
-                <AlertCircle size={12} />
-                <span>{errorMessage}</span>
+            <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-start gap-2 text-red-600 text-xs font-medium">
+                    <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                    <span>{errorMessage}</span>
+                </div>
+                {hintMessage && (
+                    <div className="mt-1.5 pl-5 text-red-500 text-[10px] font-mono bg-red-100/50 p-1.5 rounded">
+                        💡 {hintMessage}
+                    </div>
+                )}
             </div>
         )}
     </div>
@@ -54,6 +63,8 @@ const BasicFormulaLab = () => {
     const [result, setResult] = useState(null);
     const [tempResult, setTempResult] = useState(null);
     const [formulaError, setFormulaError] = useState('');
+    const [formulaHint, setFormulaHint] = useState('');
+    const [showQuiz, setShowQuiz] = useState(false); // Quiz State
 
     // Sample Data - Nilai Ujian Siswa
     const examData = [
@@ -127,27 +138,73 @@ const BasicFormulaLab = () => {
         return cells;
     };
 
-    // Parse the formula input
+    // Parse the formula input with improved error messages
     const parseFormula = () => {
-        const formula = formulaInput.trim().toUpperCase();
+        const formula = formulaInput.trim();
+        const formulaUpper = formula.toUpperCase();
+
+        // Check if formula starts with =
+        if (!formula.startsWith('=')) {
+            return {
+                valid: false,
+                error: '⚠️ Formula harus diawali tanda "="',
+                hint: 'Contoh yang benar: =' + activeTab + '(C2:C6)'
+            };
+        }
 
         // Match formula pattern: =FUNCTION(args)
-        const match = formula.match(/^=(\w+)\((.+)\)$/);
+        const match = formulaUpper.match(/^=(\w+)\((.+)\)$/);
         if (!match) {
-            return { valid: false, error: 'Format formula tidak valid. Gunakan format =FUNGSI(range)' };
+            // Check for common mistakes
+            if (!formula.includes('(')) {
+                return {
+                    valid: false,
+                    error: '⚠️ Kurung buka "(" tidak ditemukan',
+                    hint: 'Format: =' + activeTab + '(range) - contoh: =' + activeTab + '(C2:C6)'
+                };
+            }
+            if (!formula.includes(')')) {
+                return {
+                    valid: false,
+                    error: '⚠️ Kurung tutup ")" tidak ditemukan',
+                    hint: 'Pastikan formula diakhiri dengan ")"'
+                };
+            }
+            return {
+                valid: false,
+                error: '⚠️ Format formula tidak valid',
+                hint: 'Format benar: =' + activeTab + '(C2:C6) atau =' + activeTab + '(C2;C3;C4)'
+            };
         }
 
         const [_, funcName, args] = match;
 
         // Check if function matches active tab
         if (funcName !== activeTab) {
-            return { valid: false, error: `Gunakan fungsi ${activeTab} untuk tab ini` };
+            return {
+                valid: false,
+                error: `⚠️ Fungsi "${funcName}" tidak sesuai tab "${activeTab}"`,
+                hint: `Ganti menjadi =${activeTab}(${args}) atau klik tab ${funcName}`
+            };
+        }
+
+        // Check for common range mistakes
+        if (args.includes(',')) {
+            return {
+                valid: false,
+                error: '⚠️ Gunakan titik koma (;) bukan koma (,)',
+                hint: `Contoh: =${activeTab}(C2;C3;C4) atau =${activeTab}(C2:C6)`
+            };
         }
 
         // Parse the range/arguments
         const cells = parseRange(args);
         if (cells.length === 0) {
-            return { valid: false, error: 'Range tidak valid. Contoh: C2:C6 atau C2;C3;C4' };
+            return {
+                valid: false,
+                error: '⚠️ Range "' + args + '" tidak valid',
+                hint: 'Kolom valid: A-E, Baris valid: 1-6. Contoh: C2:C6 atau C2;C3;D2'
+            };
         }
 
         // Get numeric values only
@@ -156,7 +213,11 @@ const BasicFormulaLab = () => {
             .filter(v => !isNaN(v));
 
         if (values.length === 0) {
-            return { valid: false, error: 'Tidak ada data numerik dalam range' };
+            return {
+                valid: false,
+                error: '⚠️ Range tidak berisi angka',
+                hint: 'Pilih kolom C, D, atau E yang berisi nilai ujian'
+            };
         }
 
         return { valid: true, funcName, cells, values };
@@ -398,10 +459,12 @@ const BasicFormulaLab = () => {
                 }
                 setResult(res);
                 setFormulaError('');
+                setFormulaHint('');
             } else {
                 setHighlightedCells([]);
                 setResult('#ERROR!');
                 setFormulaError(parsed.error);
+                setFormulaHint(parsed.hint || '');
             }
         }
     }, [formulaInput, activeTab]);
@@ -534,10 +597,10 @@ const BasicFormulaLab = () => {
                                                 <td
                                                     key={cIdx}
                                                     className={`border border-slate-200 p-3 transition-all duration-300 ${highlightedCells.includes(`r${rIdx}-c${cIdx}`)
-                                                            ? 'bg-yellow-100 border-yellow-500 font-bold text-yellow-900 ring-2 ring-yellow-400 ring-inset scale-95 rounded'
-                                                            : rIdx === 0
-                                                                ? 'bg-slate-100 font-bold text-slate-700'
-                                                                : 'bg-white'
+                                                        ? 'bg-yellow-100 border-yellow-500 font-bold text-yellow-900 ring-2 ring-yellow-400 ring-inset scale-95 rounded'
+                                                        : rIdx === 0
+                                                            ? 'bg-slate-100 font-bold text-slate-700'
+                                                            : 'bg-white'
                                                         }`}
                                                 >
                                                     {cell}
@@ -586,6 +649,13 @@ const BasicFormulaLab = () => {
 
                 {/* RIGHT COLUMN: CONTROLS */}
                 <div className="space-y-6">
+                    <button
+                        onClick={() => setShowQuiz(true)}
+                        className="w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 px-4 py-3 rounded-xl border-2 border-yellow-500 shadow-sm flex items-center justify-center gap-2 font-bold transition-all text-sm uppercase tracking-wider mb-2"
+                    >
+                        <Trophy size={16} /> Mode Kuis
+                    </button>
+
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm sticky top-4 overflow-y-auto max-h-[85vh] custom-scrollbar text-left flex flex-col h-full">
                         <div className="flex flex-col gap-3 mb-6">
                             <span className="text-[10px] font-bold text-slate-300 uppercase mb-2 block tracking-widest">Pilih Fungsi</span>
@@ -596,8 +666,8 @@ const BasicFormulaLab = () => {
                                         onClick={() => setActiveTab(tab)}
                                         disabled={isAnimating}
                                         className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border ${activeTab === tab
-                                                ? 'bg-blue-600 border-blue-700 text-white shadow-md scale-105'
-                                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-50'
+                                            ? 'bg-blue-600 border-blue-700 text-white shadow-md scale-105'
+                                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-50'
                                             }`}
                                     >
                                         {tab}
@@ -616,6 +686,7 @@ const BasicFormulaLab = () => {
                                 placeholder={`=${activeTab}(C2:C6)`}
                                 isValid={!formulaError}
                                 errorMessage={formulaError}
+                                hintMessage={formulaHint}
                             />
                             <p className="text-[10px] text-slate-400 mt-2 italic">
                                 Gunakan format range seperti C2:C6 atau pisahkan dengan ; seperti C2;C3;C4
@@ -626,19 +697,15 @@ const BasicFormulaLab = () => {
                             onClick={startAnimation}
                             disabled={isAnimating || !!formulaError}
                             className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all mb-6 ${isAnimating || formulaError
-                                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                    : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-blue-500/30'
+                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-blue-500/30'
                                 }`}
                         >
                             {isAnimating ? <Pause size={16} /> : <Play size={16} />}
                             {isAnimating ? 'Menjalankan...' : 'Jalankan Simulasi'}
                         </button>
 
-                        {/* Formula Preview */}
-                        <div className="bg-slate-900 p-4 rounded-xl mb-6">
-                            <div className="text-[10px] text-slate-400 uppercase tracking-widest mb-2">Formula Bar</div>
-                            <div className="font-mono text-lg text-white">{formulaInput}</div>
-                        </div>
+
 
                         {/* BOX TANTANGAN PRAKTIKUM */}
                         <div className="bg-yellow-50 p-5 rounded-xl border border-yellow-200 shadow-sm mb-6">
@@ -665,6 +732,15 @@ const BasicFormulaLab = () => {
                     </div>
                 </div>
             </div>
+            {/* Quiz Mode */}
+            {showQuiz && (
+                <QuizMode
+                    moduleId="excel_basic"
+                    moduleName="Microsoft Excel: Formula Dasar"
+                    questions={excelBasicQuizQuestions}
+                    onClose={() => setShowQuiz(false)}
+                />
+            )}
         </div>
     );
 };

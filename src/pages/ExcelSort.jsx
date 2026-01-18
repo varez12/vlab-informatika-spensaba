@@ -10,7 +10,11 @@ import {
     FileSpreadsheet,
     Settings2,
     ChevronDown,
-    ListFilter
+    ListFilter,
+    ArrowDownAZ,
+    ArrowUpAZ,
+    Plus,
+    Trash2
 } from 'lucide-react';
 
 const ExcelSort = () => {
@@ -22,6 +26,8 @@ const ExcelSort = () => {
         { id: 4, nama: 'Dedi Kurniawan', kelas: '9C', nilai: 88, status: 'Lulus' },
         { id: 5, nama: 'Euis Dahlia', kelas: '7B', nilai: 95, status: 'Lulus' },
         { id: 6, nama: 'Fajar Pratama', kelas: '9C', nilai: 65, status: 'Remedial' },
+        { id: 7, nama: 'Gilang Ramadhan', kelas: '8A', nilai: 85, status: 'Lulus' },
+        { id: 8, nama: 'Hana Pertiwi', kelas: '7B', nilai: 88, status: 'Lulus' },
     ];
 
     // --- UI STATE ---
@@ -30,9 +36,11 @@ const ExcelSort = () => {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [selectedRow, setSelectedRow] = useState(null);
     const [openFilterMenu, setOpenFilterMenu] = useState(null); // Menunjuk kolom mana yang terbuka filternya
+    const [showCustomSortModal, setShowCustomSortModal] = useState(false);
 
     // --- LOGIC STATE ---
-    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+    // Multi-level sort: [{ key: 'kelas', direction: 'asc' }, { key: 'nilai', direction: 'desc' }]
+    const [sortCriteria, setSortCriteria] = useState([]);
     const [activeFilters, setActiveFilters] = useState({
         nama: [],
         kelas: [],
@@ -59,24 +67,38 @@ const ExcelSort = () => {
             }
         });
 
-        // 2. Sorting Logic
-        if (sortConfig.key !== null) {
+        // 2. Sorting Logic (Multi-level)
+        if (sortCriteria.length > 0) {
             result.sort((a, b) => {
-                const valA = a[sortConfig.key];
-                const valB = b[sortConfig.key];
-                if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
-                if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+                for (const criterion of sortCriteria) {
+                    const key = criterion.key;
+                    const dir = criterion.direction === 'asc' ? 1 : -1;
+
+                    let valA = a[key];
+                    let valB = b[key];
+
+                    // Handle numeric sorting if mostly numbers
+                    if (typeof valA === 'number' && typeof valB === 'number') {
+                        if (valA < valB) return -1 * dir;
+                        if (valA > valB) return 1 * dir;
+                    } else {
+                        // String sorting
+                        if (valA < valB) return -1 * dir;
+                        if (valA > valB) return 1 * dir;
+                    }
+                }
                 return 0;
             });
         }
         return result;
-    }, [sortConfig, activeFilters]);
+    }, [sortCriteria, activeFilters]);
 
     // --- HANDLERS ---
-    const toggleSort = (key) => {
-        let direction = 'asc';
-        if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
-        setSortConfig({ key, direction });
+
+    // Quick Sort (Single Column) - Replces previous sort
+    const handleQuickSort = (key, direction) => {
+        setSortCriteria([{ key, direction }]);
+        setOpenFilterMenu(null);
     };
 
     const handleFilterToggle = (column, value) => {
@@ -92,6 +114,28 @@ const ExcelSort = () => {
 
     const clearFilter = (column) => {
         setActiveFilters(prev => ({ ...prev, [column]: [] }));
+    };
+
+    // Custom Sort Handlers
+    const addSortLevel = () => {
+        if (sortCriteria.length < 3) {
+            // Default new level
+            const availableKeys = ['kelas', 'nilai', 'nama', 'status'];
+            const nextKey = availableKeys.find(k => !sortCriteria.find(c => c.key === k)) || 'nama';
+            setSortCriteria([...sortCriteria, { key: nextKey, direction: 'asc' }]);
+        }
+    };
+
+    const removeSortLevel = (index) => {
+        const newCriteria = [...sortCriteria];
+        newCriteria.splice(index, 1);
+        setSortCriteria(newCriteria);
+    };
+
+    const updateSortLevel = (index, field, value) => {
+        const newCriteria = [...sortCriteria];
+        newCriteria[index] = { ...newCriteria[index], [field]: value };
+        setSortCriteria(newCriteria);
     };
 
     // Close menus on outside click
@@ -144,10 +188,14 @@ const ExcelSort = () => {
                         <div className="flex flex-col items-center group">
                             <div className="flex gap-2">
                                 <button
-                                    onClick={() => toggleSort('nama')}
+                                    onClick={() => setShowCustomSortModal(true)}
                                     className="flex flex-col items-center p-2 rounded hover:bg-slate-200 text-slate-700"
+                                    title="Custom Sort (Multi-level)"
                                 >
-                                    <ArrowUpDown size={20} className="text-[#217346]" />
+                                    <div className="relative">
+                                        <LayoutGrid size={20} className="text-[#217346]" />
+                                        <div className="absolute -bottom-1 -right-1 bg-orange-500 rounded-full w-2.5 h-2.5 border border-white"></div>
+                                    </div>
                                     <span className="text-[10px] font-medium mt-1">Sort</span>
                                 </button>
                                 <button
@@ -161,16 +209,13 @@ const ExcelSort = () => {
                             <span className="text-[9px] text-slate-400 font-bold uppercase mt-1">Sort & Filter</span>
                         </div>
                     </div>
-
-
                 </div>
             </nav>
 
             {/* --- WORKSPACE --- */}
-            {/* Removed padding (p-4) and gap (gap-4) as requested to remove "red line" space */}
             <main className="flex flex-col relative bg-[#E6E6E6] flex-1 overflow-hidden">
 
-                {/* --- FORMULA BAR (Replaces Title) --- */}
+                {/* --- FORMULA BAR --- */}
                 <div className="bg-white border-b border-slate-300 flex items-center p-1.5 gap-2 z-10 shadow-sm sticky top-0">
                     {/* Name Box */}
                     <div className="w-10 h-6 bg-white border border-slate-300 flex items-center justify-center text-xs font-medium text-slate-700 shadow-inner relative group cursor-default">
@@ -193,8 +238,8 @@ const ExcelSort = () => {
                             value={
                                 activeFilters.kelas.length > 0
                                     ? `=FILTER(Data; Kelas="${activeFilters.kelas.join(",")}")`
-                                    : sortConfig.key
-                                        ? `=SORT(Data; "${sortConfig.key}"; ${sortConfig.direction})`
+                                    : sortCriteria.length > 0
+                                        ? `=SORT(Data; ${sortCriteria.map(c => `${c.key} ${c.direction}`).join(", ")})`
                                         : selectedRow
                                             ? selectedRow.nama
                                             : ''
@@ -204,10 +249,13 @@ const ExcelSort = () => {
                         />
                     </div>
 
-                    {/* Clear Filters Integrated */}
-                    {Object.entries(activeFilters).some(([_, v]) => v.length > 0) && (
+                    {/* Clear Filters/Sort */}
+                    {(Object.entries(activeFilters).some(([_, v]) => v.length > 0) || sortCriteria.length > 0) && (
                         <button
-                            onClick={() => setActiveFilters({ nama: [], kelas: [], status: [] })}
+                            onClick={() => {
+                                setActiveFilters({ nama: [], kelas: [], status: [] });
+                                setSortCriteria([]);
+                            }}
                             className="px-2 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded text-[10px] font-bold hover:bg-red-100 transition-colors flex items-center gap-1 shadow-sm"
                         >
                             <X size={10} /> Clear
@@ -217,11 +265,10 @@ const ExcelSort = () => {
 
                 <div className="flex-1 overflow-auto custom-scrollbar relative">
                     {/* --- GRID TABLE (EXCEL STYLE) --- */}
-                    {/* Applied Zoom Transform */}
                     <div className="bg-[#E6E6E6] relative" ref={menuRef}>
                         <div
                             className="bg-white shadow-xl origin-top-left transition-transform duration-200 ease-out inline-block min-w-full"
-                            style={{ transform: `scale(${zoom / 100})`, width: `${100 * (100 / zoom)}%` }} // Adjust width to compensate scale
+                            style={{ transform: `scale(${zoom / 100})`, width: `${100 * (100 / zoom)}%` }}
                         >
                             <table className="w-full text-sm border-collapse table-fixed cursor-default bg-white">
                                 <colgroup>
@@ -242,30 +289,19 @@ const ExcelSort = () => {
                                                 </svg>
                                             </div>
                                         </th>
-                                        <th className="border border-slate-300 bg-[#E6E6E6] text-slate-700 font-normal hover:bg-[#D4D4D4] transition-colors relative group">
-                                            A
-                                            <div className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-green-500"></div>
-                                        </th>
-                                        <th className="border border-slate-300 bg-[#E6E6E6] text-slate-700 font-normal hover:bg-[#D4D4D4] transition-colors relative group">
-                                            B
-                                            <div className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-green-500"></div>
-                                        </th>
-                                        <th className="border border-slate-300 bg-[#E6E6E6] text-slate-700 font-normal hover:bg-[#D4D4D4] transition-colors relative group">
-                                            C
-                                            <div className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-green-500"></div>
-                                        </th>
-                                        <th className="border border-slate-300 bg-[#E6E6E6] text-slate-700 font-normal hover:bg-[#D4D4D4] transition-colors relative group">
-                                            D
-                                            <div className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-green-500"></div>
-                                        </th>
-                                        <th className="border border-slate-300 bg-[#E6E6E6] text-slate-700 font-normal hover:bg-[#D4D4D4] transition-colors">E</th>
+                                        {['A', 'B', 'C', 'D', 'E'].map((col) => (
+                                            <th key={col} className="border border-slate-300 bg-[#E6E6E6] text-slate-700 font-normal hover:bg-[#D4D4D4] transition-colors relative group">
+                                                {col}
+                                                <div className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-green-500"></div>
+                                            </th>
+                                        ))}
                                     </tr>
                                     {/* SEMANTIC HEADERS (Row 1) */}
                                     <tr>
                                         <th className="h-8 border border-slate-300 bg-[#F8F9FA] text-slate-500 font-mono text-center text-xs">1</th>
                                         <th className="border border-slate-300 relative px-2 py-1 bg-white text-left align-middle group">
                                             <div className="flex items-center justify-between pointer-events-none">
-                                                <span className="font-bold text-slate-700 text-xs">Nama Siswa</span>
+                                                <span className="font-bold text-slate-700 text-xs text-left">Nama Siswa</span>
                                                 {isFilterModeActive && (
                                                     <button
                                                         onClick={() => setOpenFilterMenu(openFilterMenu === 'nama' ? null : 'nama')}
@@ -275,8 +311,7 @@ const ExcelSort = () => {
                                                     </button>
                                                 )}
                                             </div>
-                                            {/* Filter Dropdown Nama */}
-                                            {openFilterMenu === 'nama' && <FilterMenu column="nama" options={uniqueValues.nama} activeFilters={activeFilters.nama} onToggle={handleFilterToggle} onClear={() => clearFilter('nama')} />}
+                                            {openFilterMenu === 'nama' && <FilterMenu column="nama" options={uniqueValues.nama} activeFilters={activeFilters.nama} onToggle={handleFilterToggle} onClear={() => clearFilter('nama')} onSortAsc={() => handleQuickSort('nama', 'asc')} onSortDesc={() => handleQuickSort('nama', 'desc')} />}
                                         </th>
                                         <th className="border border-slate-300 relative px-2 py-1 bg-white text-left align-middle group">
                                             <div className="flex items-center justify-between pointer-events-none">
@@ -290,13 +325,22 @@ const ExcelSort = () => {
                                                     </button>
                                                 )}
                                             </div>
-                                            {/* Filter Dropdown Kelas */}
-                                            {openFilterMenu === 'kelas' && <FilterMenu column="kelas" options={uniqueValues.kelas} activeFilters={activeFilters.kelas} onToggle={handleFilterToggle} onClear={() => clearFilter('kelas')} />}
+                                            {openFilterMenu === 'kelas' && <FilterMenu column="kelas" options={uniqueValues.kelas} activeFilters={activeFilters.kelas} onToggle={handleFilterToggle} onClear={() => clearFilter('kelas')} onSortAsc={() => handleQuickSort('kelas', 'asc')} onSortDesc={() => handleQuickSort('kelas', 'desc')} />}
                                         </th>
                                         <th className="border border-slate-300 relative px-2 py-1 bg-white text-center align-middle group">
                                             <div className="flex items-center justify-center gap-2">
                                                 <span className="font-bold text-slate-700 uppercase text-xs">Nilai</span>
+                                                {/* Hidden filter btn for aesthetic/code consistency but logic applies if enabled */}
+                                                {isFilterModeActive && (
+                                                    <button
+                                                        onClick={() => setOpenFilterMenu(openFilterMenu === 'nilai' ? null : 'nilai')}
+                                                        className={`pointer-events-auto p-0.5 rounded border shadow-sm absolute right-1 ${sortCriteria.some(c => c.key === 'nilai') ? 'bg-green-50 border-green-500' : 'bg-slate-100 border-slate-300 hover:bg-slate-200'}`}
+                                                    >
+                                                        <ChevronDown size={12} className="text-slate-600" />
+                                                    </button>
+                                                )}
                                             </div>
+                                            {openFilterMenu === 'nilai' && <FilterMenu column="nilai" options={[]} activeFilters={[]} onToggle={() => { }} onClear={() => { }} onSortAsc={() => handleQuickSort('nilai', 'asc')} onSortDesc={() => handleQuickSort('nilai', 'desc')} isSortOnly={true} />}
                                         </th>
                                         <th className="border border-slate-300 relative px-2 py-1 bg-white text-left align-middle group">
                                             <div className="relative flex items-center w-full pointer-events-none">
@@ -310,10 +354,8 @@ const ExcelSort = () => {
                                                     </button>
                                                 )}
                                             </div>
-                                            {/* Filter Dropdown Status */}
-                                            {openFilterMenu === 'status' && <FilterMenu column="status" options={uniqueValues.status} activeFilters={activeFilters.status} onToggle={handleFilterToggle} onClear={() => clearFilter('status')} />}
+                                            {openFilterMenu === 'status' && <FilterMenu column="status" options={uniqueValues.status} activeFilters={activeFilters.status} onToggle={handleFilterToggle} onClear={() => clearFilter('status')} onSortAsc={() => handleQuickSort('status', 'asc')} onSortDesc={() => handleQuickSort('status', 'desc')} />}
                                         </th>
-                                        {/* Empty Column for visual balance mapped to E but data only goes to D? data has Nama, Kelas, Nilai, Status (4 cols). So A B C D. E is empty. */}
                                         <th className="border border-slate-300 bg-white"></th>
                                     </tr>
                                 </thead>
@@ -338,7 +380,6 @@ const ExcelSort = () => {
                                                     {row.status.toUpperCase()}
                                                 </div>
                                             </td>
-                                            {/* Empty E Col Data */}
                                             <td className="border border-slate-200"></td>
                                         </tr>
                                     )) : (
@@ -365,11 +406,104 @@ const ExcelSort = () => {
                                     ))}
                                 </tbody>
                             </table>
-
-
                         </div>
                     </div>
                 </div>
+
+                {/* --- CUSTOM SORT MODAL --- */}
+                {showCustomSortModal && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                        <div className="bg-white rounded-lg shadow-2xl w-[500px] border border-slate-300 animate-in zoom-in-95 duration-200">
+                            {/* Header */}
+                            <div className="flex justify-between items-center p-3 border-b bg-slate-50 rounded-t-lg">
+                                <h3 className="font-bold text-sm text-slate-700 flex items-center gap-2">
+                                    <ArrowUpDown size={16} /> Sort (Multi-level)
+                                </h3>
+                                <button onClick={() => setShowCustomSortModal(false)} className="text-slate-400 hover:text-red-500 transition-colors">
+                                    <X size={18} />
+                                </button>
+                            </div>
+                            {/* Body */}
+                            <div className="p-4 space-y-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <button
+                                        onClick={addSortLevel}
+                                        className="text-[11px] bg-white border border-slate-300 px-2 py-1 rounded shadow-sm hover:bg-slate-50 flex items-center gap-1"
+                                        disabled={sortCriteria.length >= 3}
+                                    >
+                                        <Plus size={12} /> Add Level
+                                    </button>
+                                </div>
+
+                                <div className="border border-slate-300 rounded overflow-hidden">
+                                    <table className="w-full text-xs text-left">
+                                        <thead className="bg-slate-100 text-slate-500 font-semibold border-b border-slate-300">
+                                            <tr>
+                                                <th className="p-2 border-r border-slate-200 w-16 text-center">Level</th>
+                                                <th className="p-2 border-r border-slate-200">Column (Sort by)</th>
+                                                <th className="p-2 border-r border-slate-200">Order</th>
+                                                <th className="p-2 w-10"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {sortCriteria.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan="4" className="p-4 text-center italic text-slate-400">
+                                                        Belum ada kriteria sorting. Klik 'Add Level'.
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                sortCriteria.map((crit, idx) => (
+                                                    <tr key={idx} className="border-b border-slate-100 last:border-none">
+                                                        <td className="p-2 border-r border-slate-200 text-center text-slate-500">
+                                                            {idx === 0 ? 'Sort by' : 'Then by'}
+                                                        </td>
+                                                        <td className="p-2 border-r border-slate-200">
+                                                            <select
+                                                                value={crit.key}
+                                                                onChange={(e) => updateSortLevel(idx, 'key', e.target.value)}
+                                                                className="w-full bg-transparent outline-none cursor-pointer"
+                                                            >
+                                                                {['nama', 'kelas', 'nilai', 'status'].map(k => (
+                                                                    <option key={k} value={k}>{k.charAt(0).toUpperCase() + k.slice(1)}</option>
+                                                                ))}
+                                                            </select>
+                                                        </td>
+                                                        <td className="p-2 border-r border-slate-200">
+                                                            <select
+                                                                value={crit.direction}
+                                                                onChange={(e) => updateSortLevel(idx, 'direction', e.target.value)}
+                                                                className="w-full bg-transparent outline-none cursor-pointer"
+                                                            >
+                                                                <option value="asc">A to Z / Smallest to Largest</option>
+                                                                <option value="desc">Z to A / Largest to Smallest</option>
+                                                            </select>
+                                                        </td>
+                                                        <td className="p-2 text-center">
+                                                            <button onClick={() => removeSortLevel(idx)} className="text-slate-400 hover:text-red-500">
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            {/* Footer */}
+                            <div className="p-3 border-t bg-slate-50 flex justify-end gap-2 rounded-b-lg">
+                                <button onClick={() => setShowCustomSortModal(false)} className="px-4 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-200 rounded">
+                                    Cancel
+                                </button>
+                                <button onClick={() => setShowCustomSortModal(false)} className="px-4 py-1.5 text-xs font-bold bg-[#217346] text-white rounded hover:bg-[#1a5c38] shadow-sm">
+                                    OK
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* --- STATUS BAR (FIXED BOTTOM) --- */}
                 <div className="bg-[#217346] text-white px-4 py-1.5 flex items-center justify-between text-[10px] select-none shadow-sm border-t border-[#1e6b41] z-30 shrink-0 relative">
                     <div className="flex items-center gap-4">
@@ -382,7 +516,7 @@ const ExcelSort = () => {
                             {filteredAndSortedData.length} records found
                         </div>
                     </div>
-
+                    {/* ... (Existing zoom controls) ... */}
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-1 mr-2 opacity-80">
                             <button className="p-0.5 hover:bg-white/20 rounded" title="Normal View"><LayoutGrid size={12} /></button>
@@ -398,9 +532,6 @@ const ExcelSort = () => {
                 </div>
             </main>
 
-            {/* --- STATUS BAR (NEW!) --- */}
-
-
             {/* --- FLOATING HELP BUTTON --- */}
             <button
                 onClick={() => setIsDrawerOpen(true)}
@@ -411,70 +542,60 @@ const ExcelSort = () => {
             </button>
 
             {/* --- DRAWER PANDUAN --- */}
-            {
-                isDrawerOpen && (
-                    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex justify-end">
-                        <div className="w-full max-w-sm bg-white h-full shadow-2xl flex flex-col animate-slide-left">
-                            <div className="p-6 bg-[#217346] text-white flex justify-between items-center">
-                                <div>
-                                    <h3 className="text-xl font-black italic">DRAWER PANDUAN</h3>
-                                    <p className="text-[10px] opacity-70">Topik: Sort & AutoFilter</p>
-                                </div>
-                                <button onClick={() => setIsDrawerOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                                    <X size={24} />
-                                </button>
+            {isDrawerOpen && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex justify-end">
+                    <div className="w-full max-w-sm bg-white h-full shadow-2xl flex flex-col animate-slide-left">
+                        <div className="p-6 bg-[#217346] text-white flex justify-between items-center">
+                            <div>
+                                <h3 className="text-xl font-black italic">DRAWER PANDUAN</h3>
+                                <p className="text-[10px] opacity-70">Topik: Sort & AutoFilter</p>
                             </div>
+                            <button onClick={() => setIsDrawerOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                                <X size={24} />
+                            </button>
+                        </div>
 
-                            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                                <div className="space-y-2">
-                                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Tujuan Praktik</h4>
-                                    <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-                                        <p className="text-sm text-blue-900 leading-relaxed">
-                                            Siswa mampu menggunakan fitur **Filter** untuk menyaring data spesifik dan fitur **Sort** untuk mengurutkan data berdasarkan kriteria tertentu.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Langkah Teknis</h4>
-                                    <div className="space-y-3">
-                                        {[
-                                            { t: "Aktifkan Filter", d: "Klik ikon Filter di tab Ribbon agar panah muncul di judul kolom." },
-                                            { t: "Pilih Kriteria", d: "Klik panah pada kolom 'Kelas', lalu beri centang pada '8A'." },
-                                            { t: "Multi-Filter", d: "Klik panah pada kolom 'Status', lalu centang 'Lulus'." },
-                                            { t: "Analisis", d: "Perhatikan Baris Status di bawah untuk melihat jumlah data tersaring." }
-                                        ].map((step, i) => (
-                                            <div key={i} className="flex gap-4">
-                                                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold text-xs border border-green-200">{i + 1}</span>
-                                                <div>
-                                                    <p className="text-sm font-bold text-slate-800">{step.t}</p>
-                                                    <p className="text-xs text-slate-500 leading-snug">{step.d}</p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
-                                    <p className="text-[11px] text-amber-800 leading-relaxed italic">
-                                        <strong>Tips Informatika:</strong> Sorting membantu kamu melihat ranking (Nilai), sedangkan Filtering membantu kamu fokus pada grup tertentu (Kelas).
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                            <div className="space-y-2">
+                                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Tujuan Praktik</h4>
+                                <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                                    <p className="text-sm text-blue-900 leading-relaxed">
+                                        Siswa mampu menggunakan fitur **Filter** untuk menyaring data spesifik dan fitur **Sort** (termasuk multi-level) untuk mengurutkan data.
                                     </p>
                                 </div>
                             </div>
-
-                            <div className="p-6 border-t bg-slate-50">
-                                <button
-                                    onClick={() => setIsDrawerOpen(false)}
-                                    className="w-full py-3 bg-[#217346] text-white rounded font-black uppercase tracking-tighter hover:bg-[#1a5c38] transition-all shadow-md"
-                                >
-                                    Kembali Ke Lab
-                                </button>
+                            {/* ... (Existing guidelines updated) ... */}
+                            <div className="space-y-4">
+                                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Langkah Teknis</h4>
+                                <div className="space-y-3">
+                                    {[
+                                        { t: "Quick Sort", d: "Klik panah filter pada judul kolom, pilih 'Sort A to Z' atau 'Z to A'." },
+                                        { t: "Custom Sort", d: "Klik tombol 'Sort' di toolbar atas untuk membuka menu sorting bertingkat (misal: urutkan Kelas, lalu Nama)." },
+                                        { t: "Filter Data", d: "Centang kotak pada menu filter untuk menyembunyikan data yang tidak diinginkan." },
+                                    ].map((step, i) => (
+                                        <div key={i} className="flex gap-4">
+                                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold text-xs border border-green-200">{i + 1}</span>
+                                            <div>
+                                                <p className="text-sm font-bold text-slate-800">{step.t}</p>
+                                                <p className="text-xs text-slate-500 leading-snug">{step.d}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )
-            }
 
+                        <div className="p-6 border-t bg-slate-50">
+                            <button
+                                onClick={() => setIsDrawerOpen(false)}
+                                className="w-full py-3 bg-[#217346] text-white rounded font-black uppercase tracking-tighter hover:bg-[#1a5c38] transition-all shadow-md"
+                            >
+                                Kembali Ke Lab
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             <style>{`
         @keyframes slide-left {
           from { transform: translateX(100%); }
@@ -484,34 +605,50 @@ const ExcelSort = () => {
           animation: slide-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
       `}</style>
-        </div >
+        </div>
     );
 };
 
 // --- SUB-COMPONENT: FILTER MENU ---
-const FilterMenu = ({ column, options, activeFilters, onToggle, onClear }) => {
+const FilterMenu = ({ column, options, activeFilters, onToggle, onClear, onSortAsc, onSortDesc, isSortOnly = false }) => {
     return (
         <div className="absolute top-full right-0 mt-1 w-48 bg-white border border-slate-300 shadow-2xl rounded-md z-50 text-left animate-in fade-in zoom-in duration-75">
-            <div className="p-2 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Filter {column}</span>
-                <button onClick={onClear} className="text-[10px] text-blue-600 hover:underline">Clear</button>
+            {/* Sort Options */}
+            <div className="p-1 border-b border-slate-100 flex flex-col gap-1">
+                <button onClick={onSortAsc} className="flex items-center gap-2 w-full text-left px-3 py-1.5 hover:bg-slate-100 text-slate-700 rounded-sm">
+                    <ArrowDownAZ size={14} className="text-slate-500" />
+                    <span className="text-xs">Sort A to Z</span>
+                </button>
+                <button onClick={onSortDesc} className="flex items-center gap-2 w-full text-left px-3 py-1.5 hover:bg-slate-100 text-slate-700 rounded-sm">
+                    <ArrowUpAZ size={14} className="text-slate-500" />
+                    <span className="text-xs">Sort Z to A</span>
+                </button>
             </div>
-            <div className="max-h-48 overflow-y-auto p-1">
-                {options.map(opt => (
-                    <label key={opt} className="flex items-center gap-2 px-3 py-1.5 hover:bg-blue-50 rounded cursor-pointer group">
-                        <div className={`w-4 h-4 border rounded flex items-center justify-center transition-colors ${activeFilters.includes(opt) ? 'bg-[#217346] border-[#217346]' : 'border-slate-300 bg-white group-hover:border-[#217346]'}`}>
-                            {activeFilters.includes(opt) && <Check size={10} className="text-white" />}
-                        </div>
-                        <input
-                            type="checkbox"
-                            className="hidden"
-                            checked={activeFilters.includes(opt)}
-                            onChange={() => onToggle(column, opt)}
-                        />
-                        <span className="text-xs text-slate-700">{opt}</span>
-                    </label>
-                ))}
-            </div>
+
+            {!isSortOnly && (
+                <>
+                    <div className="p-2 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Filter {column}</span>
+                        <button onClick={onClear} className="text-[10px] text-blue-600 hover:underline">Clear</button>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto p-1">
+                        {options.map(opt => (
+                            <label key={opt} className="flex items-center gap-2 px-3 py-1.5 hover:bg-blue-50 rounded cursor-pointer group">
+                                <div className={`w-4 h-4 border rounded flex items-center justify-center transition-colors ${activeFilters.includes(opt) ? 'bg-[#217346] border-[#217346]' : 'border-slate-300 bg-white group-hover:border-[#217346]'}`}>
+                                    {activeFilters.includes(opt) && <Check size={10} className="text-white" />}
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    className="hidden"
+                                    checked={activeFilters.includes(opt)}
+                                    onChange={() => onToggle(column, opt)}
+                                />
+                                <span className="text-xs text-slate-700">{opt}</span>
+                            </label>
+                        ))}
+                    </div>
+                </>
+            )}
             <div className="p-2 bg-slate-50 border-t border-slate-100 text-[9px] text-slate-400 italic">
                 Klik di luar untuk menutup menu
             </div>

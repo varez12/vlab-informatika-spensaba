@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Keyboard, Cpu, Monitor, Zap, ArrowRight, Play, RotateCcw, Activity, BookOpen } from 'lucide-react';
+import { Keyboard, Cpu, Monitor, Zap, ArrowRight, Play, RotateCcw, Activity, BookOpen, Trophy } from 'lucide-react';
+import QuizMode, { cpuQuizQuestions } from '../components/QuizMode';
 
 const PemrosesanData = () => {
     // State management
@@ -10,6 +11,7 @@ const PemrosesanData = () => {
     const [processingStage, setProcessingStage] = useState('idle'); // idle, transport-input, processing, transport-output, done
     const [processDetail, setProcessDetail] = useState('char'); // char, ascii, binary
     const [currentData, setCurrentData] = useState({ char: '', ascii: '', binary: '' });
+    const [showQuiz, setShowQuiz] = useState(false); // Quiz State
 
     // References for scrolling
     const monitorRef = useRef(null);
@@ -128,6 +130,12 @@ const PemrosesanData = () => {
                             {isProcessing ? 'SISTEM SIBUK' : 'SIAP MENERIMA DATA'}
                         </span>
                     </div>
+                    <button
+                        onClick={() => setShowQuiz(true)}
+                        className="px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-slate-900 rounded-xl border-2 border-yellow-500 shadow-sm flex items-center gap-2 font-bold transition-all text-sm uppercase tracking-wider"
+                    >
+                        <Trophy size={16} /> Kuis
+                    </button>
                 </div>
             </div>
 
@@ -378,6 +386,15 @@ const PemrosesanData = () => {
                     100% { left: 100%; opacity: 0; transform: scale(0.5); }
                 }
             `}</style>
+            {/* Quiz Mode */}
+            {showQuiz && (
+                <QuizMode
+                    moduleId="cpu"
+                    moduleName="Pemrosesan Data (CPU)"
+                    questions={cpuQuizQuestions}
+                    onClose={() => setShowQuiz(false)}
+                />
+            )}
         </div>
     );
 };

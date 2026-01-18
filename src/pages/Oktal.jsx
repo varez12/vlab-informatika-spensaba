@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import NumberSystemNav from '../components/NumberSystemNav';
 import {
     Calculator,
     Binary, // Keep fallback icon
@@ -17,8 +18,10 @@ import {
     Target,
     PauseCircle,
     Plus,
+    Plus,
     Hash
 } from 'lucide-react';
+import QuizMode, { numberConversionQuizQuestions } from '../components/QuizMode';
 
 const Oktal = () => {
     const [searchParams] = useSearchParams();
@@ -43,6 +46,7 @@ const Oktal = () => {
     const [isFinished, setIsFinished] = useState(false);
     const [feedback, setFeedback] = useState({ status: 'idle', message: '' });
     const [showDrawer, setShowDrawer] = useState(false);
+    const [showQuiz, setShowQuiz] = useState(false); // Quiz State
 
     // Sync URL Params
     useEffect(() => {
@@ -179,6 +183,9 @@ const Oktal = () => {
 
     return (
         <div className="h-full w-full bg-slate-50 font-sans text-slate-900 flex flex-col overflow-hidden select-none">
+            {/* Unified Navigation */}
+            <NumberSystemNav activePage="oktal" />
+
             {/* Header */}
             {/* Header Removed as per request */}
 
@@ -208,6 +215,12 @@ const Oktal = () => {
                                         Oktal ke Desimal
                                     </button>
                                 </div>
+                                <button
+                                    onClick={() => setShowQuiz(true)}
+                                    className="px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-slate-900 rounded-full text-xs font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-2"
+                                >
+                                    <Trophy size={14} /> Kuis
+                                </button>
                             </div>
 
                             <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden mb-8">
@@ -530,6 +543,15 @@ const Oktal = () => {
                         </div>
                     </div>
                 </div>
+            )}
+            {/* Quiz Mode */}
+            {showQuiz && (
+                <QuizMode
+                    moduleId="number_conversion"
+                    moduleName="Konversi Bilangan"
+                    questions={numberConversionQuizQuestions}
+                    onClose={() => setShowQuiz(false)}
+                />
             )}
 
             {/* Global CSS */}

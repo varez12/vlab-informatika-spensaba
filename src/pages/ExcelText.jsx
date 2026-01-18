@@ -10,9 +10,9 @@ import {
 // Versi Real - Input Sintaks Formula Sebenarnya
 // ============================================================
 
-const FormulaInput = ({ value, onChange, placeholder, isValid, errorMessage }) => (
+const FormulaInput = ({ value, onChange, placeholder, isValid, errorMessage, hintMessage }) => (
     <div className="relative">
-        <div className="flex items-center bg-slate-900 rounded-xl overflow-hidden border-2 border-slate-700 focus-within:border-purple-500 transition-all">
+        <div className={`flex items-center bg-slate-900 rounded-xl overflow-hidden border-2 transition-all ${!isValid && errorMessage ? 'border-red-500/70 ring-2 ring-red-500/20' : 'border-slate-700 focus-within:border-purple-500'}`}>
             <span className="text-purple-400 font-bold text-lg px-3 font-serif italic">fx</span>
             <input
                 type="text"
@@ -23,9 +23,16 @@ const FormulaInput = ({ value, onChange, placeholder, isValid, errorMessage }) =
             />
         </div>
         {!isValid && errorMessage && (
-            <div className="flex items-center gap-2 mt-2 text-red-400 text-xs">
-                <AlertCircle size={12} />
-                <span>{errorMessage}</span>
+            <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-start gap-2 text-red-600 text-xs font-medium">
+                    <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                    <span>{errorMessage}</span>
+                </div>
+                {hintMessage && (
+                    <div className="mt-1.5 pl-5 text-red-500 text-[10px] font-mono bg-red-100/50 p-1.5 rounded">
+                        💡 {hintMessage}
+                    </div>
+                )}
             </div>
         )}
     </div>
@@ -54,6 +61,7 @@ const TextFormulaLab = () => {
     const [result, setResult] = useState(null);
     const [tempResult, setTempResult] = useState(null);
     const [formulaError, setFormulaError] = useState('');
+    const [formulaHint, setFormulaHint] = useState('');
 
     // Sample Data - Daftar Karyawan
     const employeeData = [
@@ -74,10 +82,15 @@ const TextFormulaLab = () => {
             'UPPER': '=UPPER(B2)',
             'LOWER': '=LOWER(B2)',
             'PROPER': '=PROPER(B2)',
-            'TEXT': '=TEXT(D2;"Rp #.##0")'
+            'TEXT': '=TEXT(D2;"Rp #.##0")',
+            'LEFT': '=LEFT(B2;3)',
+            'RIGHT': '=RIGHT(B2;3)',
+            'MID': '=MID(B2;3;5)',
+            'LEN': '=LEN(B2)'
         };
         setFormulaInput(defaultFormulas[activeTab] || '=UPPER(B2)');
         setFormulaError('');
+        setFormulaHint('');
     }, [activeTab]);
 
     // Parse cell reference like "B2"
@@ -101,44 +114,110 @@ const TextFormulaLab = () => {
         return null;
     };
 
-    // Parse the formula input
+    // Parse the formula input with improved error messages and hints
     const parseFormula = () => {
         const formula = formulaInput.trim();
+        const formulaUpper = formula.toUpperCase();
 
-        if (activeTab === 'TEXT') {
-            // Match TEXT formula: =TEXT(cell;"format")
-            const match = formula.match(/^=TEXT\(([A-E]\d+)\s*;\s*"([^"]+)"\)$/i);
-            if (!match) {
-                return { valid: false, error: 'Format: =TEXT(sel;"format"). Contoh: =TEXT(D2;"Rp #.##0")' };
-            }
-
-            const [_, cellRef, format] = match;
-            const cell = parseCell(cellRef);
-            if (!cell) {
-                return { valid: false, error: `Sel ${cellRef} tidak valid. Gunakan range A1-E6.` };
-            }
-
-            return { valid: true, funcName: 'TEXT', cell, format };
-        } else {
-            // Match UPPER/LOWER/PROPER formula: =FUNCTION(cell)
-            const match = formula.match(/^=(\w+)\(([A-E]\d+)\)$/i);
-            if (!match) {
-                return { valid: false, error: `Format: =${activeTab}(sel). Contoh: =${activeTab}(B2)` };
-            }
-
-            const [_, funcName, cellRef] = match;
-
-            if (funcName.toUpperCase() !== activeTab) {
-                return { valid: false, error: `Gunakan fungsi ${activeTab} untuk tab ini` };
-            }
-
-            const cell = parseCell(cellRef);
-            if (!cell) {
-                return { valid: false, error: `Sel ${cellRef} tidak valid. Gunakan range A1-E6.` };
-            }
-
-            return { valid: true, funcName: funcName.toUpperCase(), cell };
+        // 1. Check start
+        if (!formula.startsWith('=')) {
+            return {
+                valid: false,
+                error: '⚠️ Formula harus diawali tanda "="',
+                hint: `Contoh yang benar: =${activeTab}(...)`
+            };
         }
+
+        // 2. Check parenthesis
+        const match = formulaUpper.match(/^=(\w+)\((.*)\)$/);
+        if (!match) {
+            if (!formula.includes('(')) return { valid: false, error: '⚠️ Kurung buka "(" tidak ditemukan', hint: `Format: =${activeTab}(...)` };
+            if (!formula.includes(')')) return { valid: false, error: '⚠️ Kurung tutup ")" tidak ditemukan', hint: `Pastikan formula diakhiri dengan ")"` };
+            return { valid: false, error: '⚠️ Format formula tidak valid', hint: `Cek kembali penulisan formula Anda` };
+        }
+
+        const [_, funcName, argsStr] = match;
+
+        // 3. Check function name
+        if (funcName !== activeTab) {
+            return {
+                valid: false,
+                error: `⚠️ Fungsi "${funcName}" tidak sesuai tab "${activeTab}"`,
+                hint: `Ganti menjadi =${activeTab}(...) atau klik tab ${funcName}`
+            };
+        }
+
+        // 4. Check separator hint
+        if (argsStr.includes(',') && !argsStr.includes(';')) {
+            return {
+                valid: false,
+                error: '⚠️ Gunakan titik koma (;) bukan koma (,)',
+                hint: `Excel di sini menggunakan regional Indonesia (;)`
+            };
+        }
+
+        // 5. Parse Arguments based on function type
+        const args = argsStr.split(';').map(s => s.trim());
+
+        // Helper to parse cell
+        const getCell = (ref) => {
+            const cell = parseCell(ref);
+            if (!cell) return { error: `Sel "${ref}" tidak valid`, hint: 'Gunakan range A1:E6 (misal B2, C3)' };
+            return { cell };
+        };
+
+        if (['UPPER', 'LOWER', 'PROPER', 'LEN'].includes(activeTab)) {
+            if (args.length !== 1 || !args[0]) {
+                return { valid: false, error: '⚠️ Fungsi ini butuh 1 argumen', hint: `Contoh: =${activeTab}(B2)` };
+            }
+            const { cell, error, hint } = getCell(args[0]);
+            if (error) return { valid: false, error: '⚠️ ' + error, hint };
+            return { valid: true, funcName, cell };
+        }
+        else if (['LEFT', 'RIGHT'].includes(activeTab)) {
+            if (args.length < 1 || args.length > 2) {
+                return { valid: false, error: '⚠️ Fungsi ini butuh 1 atau 2 argumen', hint: `Contoh: =${activeTab}(B2; 3)` };
+            }
+            const { cell, error, hint } = getCell(args[0]);
+            if (error) return { valid: false, error: '⚠️ ' + error, hint };
+
+            let numChars = 1; // default
+            if (args.length === 2) {
+                numChars = parseInt(args[1]);
+                if (isNaN(numChars) || numChars < 0) return { valid: false, error: '⚠️ Jumlah karakter harus angka positif', hint: 'Contoh: 3, 4, 5' };
+            }
+            return { valid: true, funcName, cell, numChars };
+        }
+        else if (activeTab === 'MID') {
+            if (args.length !== 3) {
+                return { valid: false, error: '⚠️ MID butuh 3 argumen', hint: `Format: =MID(sel; mulai; jumlah) -> =MID(B2; 3; 5)` };
+            }
+            const { cell, error, hint } = getCell(args[0]);
+            if (error) return { valid: false, error: '⚠️ ' + error, hint };
+
+            const startNum = parseInt(args[1]);
+            const numChars = parseInt(args[2]);
+
+            if (isNaN(startNum) || startNum < 1) return { valid: false, error: '⚠️ Posisi mulai harus angka >= 1', hint: 'Karakter pertama = 1' };
+            if (isNaN(numChars) || numChars < 0) return { valid: false, error: '⚠️ Jumlah karakter harus angka positif', hint: 'Contoh: 5' };
+
+            return { valid: true, funcName, cell, startNum, numChars };
+        }
+        else if (activeTab === 'TEXT') {
+            // TEXT needs special regex because format string has quotes and might have ; inside quotes (though rare here)
+            // Re-parse with regex for TEXT to capture quotes safely
+            const textMatch = formula.match(/^=TEXT\(([A-E]\d+)\s*;\s*"([^"]+)"\)$/i);
+            if (!textMatch) {
+                return { valid: false, error: '⚠️ Format TEXT salah', hint: `Contoh: =TEXT(D2; "Rp #.##0")` };
+            }
+            const [__, cellRef, fmt] = textMatch;
+            const { cell, error, hint } = getCell(cellRef);
+            if (error) return { valid: false, error: '⚠️ ' + error, hint };
+
+            return { valid: true, funcName, cell, format: fmt };
+        }
+
+        return { valid: false, error: '⚠️ Fungsi tidak dikenal' };
     };
 
     // --- ENGINE SIMULASI ---
@@ -277,6 +356,114 @@ const TextFormulaLab = () => {
                     res: finalRes
                 });
             }
+            else if (['LEFT', 'RIGHT', 'MID'].includes(activeTab)) {
+                steps.push({
+                    desc: `Membaca formula: ${formulaInput}`,
+                    highlight: [],
+                    res: '...'
+                });
+
+                steps.push({
+                    desc: `Mengambil teks dari sel ${cell.ref}: "${text}" (Panjang: ${text.length})`,
+                    highlight: [`r${cell.row}-c${cell.col}`],
+                    res: text
+                });
+
+                let startIndex = 0;
+                let length = 0;
+
+                if (activeTab === 'LEFT') {
+                    startIndex = 0;
+                    length = parsed.numChars;
+                    steps.push({
+                        desc: `Mengambil ${length} karakter dari KIRI`,
+                        highlight: [`r${cell.row}-c${cell.col}`],
+                        res: text
+                    });
+                } else if (activeTab === 'RIGHT') {
+                    length = parsed.numChars;
+                    startIndex = text.length - length;
+                    if (startIndex < 0) startIndex = 0;
+                    steps.push({
+                        desc: `Mengambil ${length} karakter dari KANAN`,
+                        highlight: [`r${cell.row}-c${cell.col}`],
+                        res: text
+                    });
+                } else if (activeTab === 'MID') {
+                    startIndex = parsed.startNum - 1; // 1-based to 0-based
+                    length = parsed.numChars;
+                    steps.push({
+                        desc: `Mulai dari karakter ke-${parsed.startNum}, ambil ${length} karakter`,
+                        highlight: [`r${cell.row}-c${cell.col}`],
+                        res: text
+                    });
+                }
+
+                // Simulate extraction
+                let extracted = "";
+                // Clamp length to valid range
+                const actualEnd = Math.min(startIndex + length, text.length);
+
+                for (let i = startIndex; i < actualEnd; i++) {
+                    extracted += text[i];
+                    steps.push({
+                        desc: `Ambil karakter ke-${i + 1}: "${text[i]}"`,
+                        highlight: [`r${cell.row}-c${cell.col}`],
+                        res: extracted
+                    });
+                }
+
+                finalRes = extracted;
+                steps.push({
+                    desc: `Hasil ${activeTab}: "${finalRes}"`,
+                    highlight: [`r${cell.row}-c${cell.col}`],
+                    res: finalRes
+                });
+            }
+            else if (activeTab === 'LEN') {
+                steps.push({
+                    desc: `Membaca formula: ${formulaInput}`,
+                    highlight: [],
+                    res: '...'
+                });
+
+                steps.push({
+                    desc: `Mengambil teks dari sel ${cell.ref}: "${text}"`,
+                    highlight: [`r${cell.row}-c${cell.col}`],
+                    res: text
+                });
+
+                // Animate counting
+                const chars = text.split('');
+                let count = 0;
+                // Don't step every char if too long
+                const jump = chars.length > 10 ? 3 : 1;
+
+                for (let i = 0; i < chars.length; i += jump) {
+                    count = i + 1;
+                    steps.push({
+                        desc: `Menghitung karakter ke-${count}: "${chars[i]}"...`,
+                        highlight: [`r${cell.row}-c${cell.col}`],
+                        res: count
+                    });
+                }
+
+                // Ensure final count is correct
+                if (count !== chars.length) {
+                    steps.push({
+                        desc: `Menghitung sisa karakter...`,
+                        highlight: [`r${cell.row}-c${cell.col}`],
+                        res: chars.length
+                    });
+                }
+
+                finalRes = text.length;
+                steps.push({
+                    desc: `Hasil LEN: Total ${finalRes} karakter`,
+                    highlight: [`r${cell.row}-c${cell.col}`],
+                    res: finalRes
+                });
+            }
             else if (activeTab === 'TEXT') {
                 const value = parseFloat(text);
 
@@ -386,15 +573,13 @@ const TextFormulaLab = () => {
                 const text = cell.value;
 
                 switch (activeTab) {
-                    case 'UPPER':
-                        res = text.toUpperCase();
-                        break;
-                    case 'LOWER':
-                        res = text.toLowerCase();
-                        break;
-                    case 'PROPER':
-                        res = text.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-                        break;
+                    case 'UPPER': res = text.toUpperCase(); break;
+                    case 'LOWER': res = text.toLowerCase(); break;
+                    case 'PROPER': res = text.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '); break;
+                    case 'LEN': res = text.length; break;
+                    case 'LEFT': res = text.substring(0, parsed.numChars); break;
+                    case 'RIGHT': res = text.substring(text.length - parsed.numChars); break;
+                    case 'MID': res = text.substring(parsed.startNum - 1, parsed.startNum - 1 + parsed.numChars); break;
                     case 'TEXT':
                         const value = parseFloat(text);
                         const formatLower = format?.toLowerCase() || '';
@@ -429,10 +614,12 @@ const TextFormulaLab = () => {
                 }
                 setResult(res);
                 setFormulaError('');
+                setFormulaHint('');
             } else {
                 setHighlightedCells([]);
                 setResult('#ERROR!');
                 setFormulaError(parsed.error);
+                setFormulaHint(parsed.hint || '');
             }
         }
     }, [formulaInput, activeTab]);
@@ -454,7 +641,7 @@ const TextFormulaLab = () => {
         return () => clearTimeout(timer);
     }, [isAnimating, currentStep, animationSteps, playbackSpeed]);
 
-    const tabs = ['UPPER', 'LOWER', 'PROPER', 'TEXT'];
+    const tabs = ['UPPER', 'LOWER', 'PROPER', 'TEXT', 'LEFT', 'RIGHT', 'MID', 'LEN'];
 
     const getFormulaInfo = () => {
         switch (activeTab) {
@@ -489,6 +676,38 @@ const TextFormulaLab = () => {
                 example: '=TEXT(D2;"Rp #.##0") atau =TEXT(E2;"dd-mm-yyyy")',
                 icon: <FileText className="w-5 h-5" />,
                 challenge: 'Coba =TEXT(E2;"dd-mm-yyyy") untuk mengubah nomor seri tanggal. Atau =TEXT(D3;"Rp #.##0") untuk format gaji.'
+            };
+            case 'LEFT': return {
+                title: "LEFT - Ambil Kiri",
+                desc: "Mengambil beberapa karakter dari awal (kiri) teks.",
+                syntax: "=LEFT(text; [num_chars])",
+                example: "=LEFT(B2; 4) -> 'budi'",
+                icon: <ArrowUpCircle className="w-5 h-5 rotate-[-45deg]" />,
+                challenge: "Ambil 4 karakter pertama dari nama 'DEWI LESTARI' dengan =LEFT(B3;4)."
+            };
+            case 'RIGHT': return {
+                title: "RIGHT - Ambil Kanan",
+                desc: "Mengambil beberapa karakter dari akhir (kanan) teks.",
+                syntax: "=RIGHT(text; [num_chars])",
+                example: "=RIGHT(B2; 7) -> 'santoso'",
+                icon: <ArrowUpCircle className="w-5 h-5 rotate-[45deg]" />,
+                challenge: "Ambil nama belakang 'santoso' dari B2 menggunakan =RIGHT(B2;7)."
+            };
+            case 'MID': return {
+                title: "MID - Ambil Tengah",
+                desc: "Mengambil karakter dari tengah teks, mulai dari posisi tertentu.",
+                syntax: "=MID(text; start_num; num_chars)",
+                example: "=MID(B2; 6; 7) -> 'santoso'",
+                icon: <Grid className="w-5 h-5" />,
+                challenge: "Ambil kata 'WIJAYA' dari B4 (mulai karakter ke-6, panjang 6) dengan =MID(B4;6;6)."
+            };
+            case 'LEN': return {
+                title: "LEN - Panjang Teks",
+                desc: "Menghitung jumlah karakter dalam sebuah teks (termasuk spasi).",
+                syntax: "=LEN(text)",
+                example: "=LEN(B2) -> 12",
+                icon: <Type className="w-5 h-5" />,
+                challenge: "Hitung panjang nama 'andi WIJAYA pratama' dengan =LEN(B4)."
             };
             default: return {
                 title: activeTab,
@@ -566,10 +785,10 @@ const TextFormulaLab = () => {
                                                 <td
                                                     key={cIdx}
                                                     className={`border border-slate-200 p-2 transition-all duration-300 text-xs ${highlightedCells.includes(`r${rIdx}-c${cIdx}`)
-                                                            ? 'bg-yellow-100 border-yellow-500 font-bold text-yellow-900 ring-2 ring-yellow-400 ring-inset scale-95 rounded'
-                                                            : rIdx === 0
-                                                                ? 'bg-slate-100 font-bold text-slate-700'
-                                                                : 'bg-white'
+                                                        ? 'bg-yellow-100 border-yellow-500 font-bold text-yellow-900 ring-2 ring-yellow-400 ring-inset scale-95 rounded'
+                                                        : rIdx === 0
+                                                            ? 'bg-slate-100 font-bold text-slate-700'
+                                                            : 'bg-white'
                                                         }`}
                                                 >
                                                     {cIdx === 3 && rIdx > 0
@@ -633,8 +852,8 @@ const TextFormulaLab = () => {
                                         onClick={() => setActiveTab(tab)}
                                         disabled={isAnimating}
                                         className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border ${activeTab === tab
-                                                ? 'bg-purple-600 border-purple-700 text-white shadow-md scale-105'
-                                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-50'
+                                            ? 'bg-purple-600 border-purple-700 text-white shadow-md scale-105'
+                                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-50'
                                             }`}
                                     >
                                         {tab}
@@ -643,6 +862,7 @@ const TextFormulaLab = () => {
                             </div>
                         </div>
 
+
                         <div className="mb-6">
                             <label className="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest mb-3 block">
                                 Ketik Formula
@@ -650,9 +870,10 @@ const TextFormulaLab = () => {
                             <FormulaInput
                                 value={formulaInput}
                                 onChange={(e) => setFormulaInput(e.target.value)}
-                                placeholder={activeTab === 'TEXT' ? '=TEXT(D2;"Rp #.##0")' : `=${activeTab}(B2)`}
+                                placeholder={activeTab === 'TEXT' ? '=TEXT(D2;"Rp #.##0")' : activeTab === 'MID' ? '=MID(B2;1;5)' : `=${activeTab}(B2)`}
                                 isValid={!formulaError}
                                 errorMessage={formulaError}
+                                hintMessage={formulaHint}
                             />
                             <p className="text-[10px] text-slate-400 mt-2 italic">
                                 {activeTab === 'TEXT'
@@ -666,19 +887,15 @@ const TextFormulaLab = () => {
                             onClick={startAnimation}
                             disabled={isAnimating || !!formulaError}
                             className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all mb-6 ${isAnimating || formulaError
-                                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                    : 'bg-purple-600 text-white hover:bg-purple-700 shadow-lg hover:shadow-purple-500/30'
+                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                : 'bg-purple-600 text-white hover:bg-purple-700 shadow-lg hover:shadow-purple-500/30'
                                 }`}
                         >
                             {isAnimating ? <Pause size={16} /> : <Play size={16} />}
                             {isAnimating ? 'Menjalankan...' : 'Jalankan Simulasi'}
                         </button>
 
-                        {/* Formula Preview */}
-                        <div className="bg-slate-900 p-4 rounded-xl mb-6">
-                            <div className="text-[10px] text-slate-400 uppercase tracking-widest mb-2">Formula Bar</div>
-                            <div className="font-mono text-lg text-white break-all">{formulaInput}</div>
-                        </div>
+
 
                         {/* TEXT Format Examples */}
                         {activeTab === 'TEXT' && (
@@ -728,7 +945,7 @@ const TextFormulaLab = () => {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

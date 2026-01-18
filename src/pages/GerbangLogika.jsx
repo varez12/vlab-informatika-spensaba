@@ -12,8 +12,10 @@ import {
     CheckCircle2,
     AlertTriangle,
     Layers,
-    Activity
+    Activity,
+    Trophy // Import Trophy icon
 } from 'lucide-react';
+import QuizMode, { logicGateQuizQuestions } from '../components/QuizMode';
 
 // --- Konfigurasi Gerbang Logika ---
 const GATES_CONFIG = {
@@ -97,6 +99,7 @@ const GerbangLogika = () => {
     const [inputB, setInputB] = useState(false);
     const [inputC, setInputC] = useState(false);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+    const [showQuiz, setShowQuiz] = useState(false); // Quiz State
 
     const gateData = GATES_CONFIG[activeGate];
 
@@ -126,6 +129,14 @@ const GerbangLogika = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setShowQuiz(true)}
+                        className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full text-xs font-bold transition-all shadow-lg shadow-indigo-500/20"
+                    >
+                        <Trophy size={14} />
+                        <span className="uppercase tracking-wider">Quiz</span>
+                    </button>
+
                     <div className={`px-2 md:px-4 py-1.5 rounded-full border transition-all duration-500 flex items-center gap-2 ${outputValue ? 'bg-green-600/20 border-green-500 text-green-400' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
                         <div className={`w-2 h-2 rounded-full ${outputValue ? 'bg-green-500 animate-pulse' : 'bg-slate-600'}`} />
                         <span className="text-[10px] md:text-xs font-bold font-mono">STATUS: {outputValue ? 'HIGH (1)' : 'LOW (0)'}</span>
@@ -412,6 +423,15 @@ const GerbangLogika = () => {
                         </div>
                     </div>
                 </>
+            )}
+            {/* QUIZ MODE */}
+            {showQuiz && (
+                <QuizMode
+                    moduleId="logic_gate"
+                    moduleName="Gerbang Logika"
+                    questions={logicGateQuizQuestions}
+                    onClose={() => setShowQuiz(false)}
+                />
             )}
         </div>
     );

@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Excel from './pages/Excel';
 import MailMerger from './pages/MailMerger';
+import WordLab from './pages/WordLab';
 import WordParagraph from './pages/WordParagraph';
 import WordPageLayout from './pages/WordPageLayout';
 import WordTabulator from './pages/WordTabulator';
@@ -61,7 +62,6 @@ const AppContent = () => {
           <Route path="/" element={<Home />} />
           <Route path="/excel-sort" element={<ExcelSort />} />
           <Route path="/excel-chart" element={<ExcelChart />} />
-          <Route path="/word-tabulator" element={<WordTabulator />} />
           {/* Lazy-loaded Heavy Components with Suspense */}
           <Route path="/blockly" element={<Suspense fallback={<PageLoader />}><BlocklyPage /></Suspense>} />
           <Route path="/blockly-maze" element={<Suspense fallback={<PageLoader />}><BlocklyMaze /></Suspense>} />
@@ -84,8 +84,14 @@ const AppContent = () => {
           <Route path="/excel-basic" element={<ExcelBasic />} />
           <Route path="/excel-text" element={<ExcelText />} />
           <Route path="/mailmerge" element={<MailMerger />} />
+
+
+          {/* Word Lab - Simplified version for quick reference */}
+          <Route path="/word-lab" element={<WordLab />} />
+          {/* Original Word Simulations - Full Word-like UI */}
           <Route path="/word-paragraph" element={<WordParagraph />} />
           <Route path="/word-layout" element={<WordPageLayout />} />
+          <Route path="/word-tabulator" element={<WordTabulator />} />
         </Routes>
       </main>
     </div>

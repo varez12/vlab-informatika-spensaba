@@ -22,8 +22,12 @@ import {
     ArrowUp,
     ArrowDown,
     ChevronDown,
-    Menu
+    ArrowDown,
+    ChevronDown,
+    Menu,
+    Trophy
 } from 'lucide-react';
+import QuizMode, { explorerQuizQuestions } from '../components/QuizMode';
 
 // --- Realistic Custom SVG Icons (Windows 11 Style) ---
 
@@ -144,6 +148,7 @@ const Explorer = () => {
     const [selectedFileId, setSelectedFileId] = useState(null);
     const [renameValue, setRenameValue] = useState('');
     const [isRenaming, setIsRenaming] = useState(false);
+    const [showQuiz, setShowQuiz] = useState(false); // Quiz State
 
     const [clipboard, setClipboard] = useState(null);
     const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, targetId: null });
@@ -307,7 +312,13 @@ const Explorer = () => {
                                 <RealisticFolder size={18} />
                                 <span className="text-xs font-bold text-slate-600 truncate max-w-[150px] md:max-w-none">File Explorer - {currentPath}</span>
                             </div>
-                            <div className="flex items-center">
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setShowQuiz(true)}
+                                    className="px-3 py-1 bg-yellow-400 hover:bg-yellow-500 text-slate-900 rounded font-bold text-xs flex items-center gap-2 transition-all shadow-sm"
+                                >
+                                    <Trophy size={14} /> <span className="hidden sm:inline">Kuis</span>
+                                </button>
                                 <button onClick={() => setIsFileExplorerOpen(false)} className="p-2 hover:bg-red-500 hover:text-white transition-colors md:rounded-tr-xl"><X size={20} /></button>
                             </div>
                         </div>
@@ -516,6 +527,15 @@ const Explorer = () => {
                         <button onClick={() => setIsDrawerOpen(false)} className="mt-6 w-full py-4 bg-blue-600 rounded-xl font-black text-xs uppercase tracking-widest">SAYA MENGERTI</button>
                     </div>
                 </div>
+            )}
+            {/* Quiz Mode */}
+            {showQuiz && (
+                <QuizMode
+                    moduleId="explorer"
+                    moduleName="Sistem Operasi & File Explorer"
+                    questions={explorerQuizQuestions}
+                    onClose={() => setShowQuiz(false)}
+                />
             )}
         </div>
     );

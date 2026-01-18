@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import NumberSystemNav from '../components/NumberSystemNav';
 import {
     Calculator,
     Binary,
@@ -15,8 +16,10 @@ import {
     PauseCircle,
     Plus,
     Cpu,
+    Cpu,
     ArrowRight
 } from 'lucide-react';
+import QuizMode, { numberConversionQuizQuestions } from '../components/QuizMode';
 
 const Heksadesimal = () => {
     const [searchParams] = useSearchParams();
@@ -41,6 +44,7 @@ const Heksadesimal = () => {
     const [isFinished, setIsFinished] = useState(false);
     const [feedback, setFeedback] = useState({ status: 'idle', message: '' });
     const [showDrawer, setShowDrawer] = useState(false);
+    const [showQuiz, setShowQuiz] = useState(false); // Quiz State
 
     // Sync URL Params
     useEffect(() => {
@@ -276,6 +280,9 @@ const Heksadesimal = () => {
 
     return (
         <div className="h-full w-full bg-slate-50 font-sans text-slate-900 flex flex-col overflow-hidden select-none">
+            {/* Unified Navigation */}
+            <NumberSystemNav activePage="heksadesimal" />
+
             {/* Header Removed as per request */}
 
             {/* Main Content Area */}
@@ -315,6 +322,12 @@ const Heksadesimal = () => {
                                         Biner ke Hex
                                     </button>
                                 </div>
+                                <button
+                                    onClick={() => setShowQuiz(true)}
+                                    className="px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-slate-900 rounded-full text-xs font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-2"
+                                >
+                                    <Trophy size={14} /> Kuis
+                                </button>
                             </div>
 
                             <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden mb-8">
@@ -827,6 +840,16 @@ const Heksadesimal = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Quiz Mode */}
+            {showQuiz && (
+                <QuizMode
+                    moduleId="number_conversion"
+                    moduleName="Konversi Bilangan"
+                    questions={numberConversionQuizQuestions}
+                    onClose={() => setShowQuiz(false)}
+                />
             )}
 
             {/* Global CSS */}
